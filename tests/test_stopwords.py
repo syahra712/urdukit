@@ -76,6 +76,11 @@ class TestReviewedByNativeSpeaker:
         assert not S.is_stopword("وجہ")
         assert not S.is_stopword("باعث")
 
+    def test_only_the_modern_spelling_of_liye_is_listed(self):
+        """لیے and لئے were both present; the reviewer kept only لیے."""
+        assert S.is_stopword("لیے")
+        assert not S.is_stopword("لئے")
+
     def test_negations_and_intensifiers_were_kept(self):
         """Reviewed and deliberately retained, matching standard practice.
 

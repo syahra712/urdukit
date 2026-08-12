@@ -97,6 +97,13 @@ class TestMeasuredAccuracy:
         assert X.LEXICON["ہمارا"] == "humara"
         assert X.LEXICON["ہمارا"].startswith(X.LEXICON["ہم"])
 
+    def test_reviewer_corrections_are_applied(self):
+        """کیسے is "kese", not the "kaise" originally generated.
+
+        Found by spot-check: 1 wrong in 12 sampled romanizations.
+        """
+        assert X.LEXICON["کیسے"] == "kese"
+
     def test_house_style_is_single_consonants(self):
         """Reviewed and confirmed: acha, not achha; chota, not chhota.
 

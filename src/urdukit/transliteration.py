@@ -153,7 +153,7 @@ LEXICON: dict[str, str] = {
     "کیوں": "kyun",
     "کہاں": "kahan",
     "کب": "kab",
-    "کیسے": "kaise",
+    "کیسے": "kese",
     "کتنا": "kitna",
     "میرا": "mera",
     "میری": "meri",
