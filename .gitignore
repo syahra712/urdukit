@@ -10,3 +10,4 @@ htmlcov/
 .ruff_cache/
 .DS_Store
 dist_check/
+.dakshina_cache/

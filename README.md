@@ -91,16 +91,29 @@ to_roman("میں پاکستان سے ہوں۔")   # 'mein pakistan se hun.'
 to_urdu("mein pakistan se hun")   # 'میں پاکستان سے ہوں'
 ```
 
-**Accuracy, stated carefully:**
+**Accuracy, measured on a standard benchmark:**
 
 There are two layers — a lookup table of 118 common words, and a rule-based fallback for everything else.
 
+Benchmarked against the [Dakshina](https://github.com/google-research-datasets/dakshina) Urdu test split (Google Research, LREC 2020) — 2,500 native-script words held out by both word and lemma:
+
 | | |
 |---|---|
-| Held-out words (rules only) | **25%** exact match |
+| Matches the **most-attested** romanization | **11.9%** |
+| Matches **any** attested romanization | **27.2%** |
 | Lexicon words | exact **by construction** — see the caveat below |
 
-**25% is low for a structural reason:** Urdu script does not record short vowels. `استاد` is *ustad*, but nothing in ا-س-ت-ا-د says the first vowel is *u*. No suffix rule can recover information that was never written down. The fallback aims for a *pronounceable approximation*, not a correct answer.
+Reproduce it yourself:
+
+```bash
+python scripts/benchmark_dakshina.py
+```
+
+The script fetches only the Urdu lexicon files it needs and does not vendor the dataset — Dakshina is CC BY-SA 4.0, which is incompatible with redistribution inside this MIT package.
+
+**These numbers are low, for two reasons.** First, structural: Urdu script does not record short vowels. `استاد` is *ustad*, but nothing in ا-س-ت-ا-د says the first vowel is *u*. No rule can recover information that was never written down. Second, and more fixable: **a large share of Urdu vocabulary is English loanwords** — `آرمی` is *army*, `آرگن` is *organ*, `آرگنائزیشن` is *organisation*. Those romanize back to English spelling, which phonetic rules will never produce. See [issue #4](https://github.com/syahra712/urdukit/issues/4).
+
+The fallback aims for a *pronounceable approximation*, not a correct answer.
 
 > ⚠️ **The lexicon is seed-quality and not yet verified.** Lexicon words return their table entry exactly, which means the *lookup* is reliable — it does **not** mean every entry is right. The initial 118 entries were machine-generated; a native-speaker spot-check of 12 found 1 incorrect, suggesting several more remain. Corrections are the most useful thing you can send. See [Contributing](#contributing).
 

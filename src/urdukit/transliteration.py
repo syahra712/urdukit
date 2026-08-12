@@ -27,11 +27,18 @@ and should be treated as a suggestion, not an answer.
 
 Accuracy
 --------
-Against ``tests/gold/transliteration_gold.py``:
+Benchmarked on the Dakshina Urdu test split (2,500 words held out by word and
+lemma; Roark et al., LREC 2020) via ``scripts/benchmark_dakshina.py``:
 
-- Held-out words, rules only: **25%** exact match.
+- Matches the most-attested romanization: **11.9%**
+- Matches any attested romanization: **27.2%**
 - Lexicon words: exact *by construction* -- a lookup returns its own table
   entry, so this measures the lookup, not the correctness of the entry.
+
+Two causes. Short vowels are absent from the script and cannot be recovered
+by rule. And a large share of Urdu vocabulary is English loanwords -- آرمی is
+*army*, آرگن is *organ* -- which romanize back to English spelling that no
+phonetic rule will produce.
 
 .. warning::
    The lexicon is seed-quality and unverified. The initial 118 entries were
