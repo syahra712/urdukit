@@ -6,7 +6,7 @@ The most valuable contributions to this project need **Urdu, not Python.**
 
 Add words to the transliteration lexicon in [`src/urdukit/transliteration.py`](src/urdukit/transliteration.py).
 
-Urdu script does not record short vowels. `استاد` is *ustad*, but nothing in ا-س-ت-ا-د tells a program the first vowel is *u*. So the rule-based fallback is about **25% accurate** on words it has never seen, while lexicon words are **100%** accurate.
+Urdu script does not record short vowels. `استاد` is *ustad*, but nothing in ا-س-ت-ا-د tells a program the first vowel is *u*. So the rule-based fallback manages only **14.5%** exact match against the most-attested romanization on the Dakshina benchmark (**32.4%** if any attested spelling counts), while a lexicon word is returned exactly.
 
 Every word you add moves from a guess to an answer.
 
@@ -45,7 +45,7 @@ pytest
 
 **Known limitations get pinned, not hidden.** Where the library is wrong on purpose — the tokenizer not recovering omitted spaces, the stemmer over-stemming `کراچی` — there is a test asserting the current behaviour. That way, improving it is a visible, deliberate change rather than a silent one. If you improve one, update its test and say so in the PR.
 
-**Don't optimise a metric at the cost of the output.** A transliteration variant once scored 29% instead of 25% by emitting `smndr` for `سمندر`. It was rejected: pronounceable-but-wrong beats unpronounceable-and-technically-closer. There is a test asserting every fallback output contains a vowel.
+**Don't optimise a metric at the cost of the output.** A transliteration variant once scored higher by emitting `smndr` for `سمندر`. It was rejected: pronounceable-but-wrong beats unpronounceable-and-technically-closer. There is a test asserting every fallback output contains a vowel.
 
 ## Running checks
 

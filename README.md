@@ -99,8 +99,8 @@ Benchmarked against the [Dakshina](https://github.com/google-research-datasets/d
 
 | | |
 |---|---|
-| Matches the **most-attested** romanization | **11.9%** |
-| Matches **any** attested romanization | **27.2%** |
+| Matches the **most-attested** romanization | **14.5%** |
+| Matches **any** attested romanization | **32.4%** |
 | Lexicon words | exact **by construction** — see the caveat below |
 
 Reproduce it yourself:
@@ -117,7 +117,7 @@ The fallback aims for a *pronounceable approximation*, not a correct answer.
 
 > ⚠️ **The lexicon is seed-quality and not yet verified.** Lexicon words return their table entry exactly, which means the *lookup* is reliable — it does **not** mean every entry is right. The initial 118 entries were machine-generated; a native-speaker spot-check of 12 found 1 incorrect, suggesting several more remain. Corrections are the most useful thing you can send. See [Contributing](#contributing).
 
-This is why the lexicon matters more than the rules: adding a correct word takes it from a ~25% guess to a reliable answer. It is also why the list needs more eyes than one author's.
+This is why the lexicon matters more than the rules: adding a correct word takes it from a ~32% guess to a reliable answer. It is also why the list needs more eyes than one author's.
 
 ## Migrating from urduhack
 
@@ -180,7 +180,7 @@ pytest
 
 Stated up front rather than discovered later:
 
-- **Transliteration of unknown words is ~25% accurate.** See above.
+- **Transliteration of unknown words is 14.5%/32.4% accurate** (most-attested / any-attested, Dakshina test split). See above.
 - **The tokenizer does not recover omitted spaces.** `کتابہے` stays one token instead of becoming `کتاب ہے`. Urdu's ten non-joining letters (ا د ڈ ذ ر ڑ ز ژ و ے) mean writers routinely omit that space, but splitting it back needs a lexicon.
 - **Stemming is not lemmatization.** `گیا` will not become `جانا`, and Arabic broken plurals (`کتاب` → `کتب`) need a dictionary. Proper nouns ending in productive suffixes get over-stemmed: `کراچی` → `کراچ`.
 - **No POS tagging or NER.** Use [stanza](https://stanfordnlp.github.io/stanza/) for those.

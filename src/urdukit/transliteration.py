@@ -30,8 +30,8 @@ Accuracy
 Benchmarked on the Dakshina Urdu test split (2,500 words held out by word and
 lemma; Roark et al., LREC 2020) via ``scripts/benchmark_dakshina.py``:
 
-- Matches the most-attested romanization: **11.9%**
-- Matches any attested romanization: **27.2%**
+- Matches the most-attested romanization: **14.5%**
+- Matches any attested romanization: **32.4%**
 - Lexicon words: exact *by construction* -- a lookup returns its own table
   entry, so this measures the lookup, not the correctness of the entry.
 
@@ -51,7 +51,8 @@ is *ustad*, but nothing in ا-س-ت-ا-د says the first vowel is *u*. The
 fallback aims at a pronounceable approximation, not a correct answer; the
 lexicon is the layer that is actually accurate.
 
-Adding a word to :data:`LEXICON` moves it from ~25% to 100%, which makes
+Adding a word to :data:`LEXICON` replaces a ~32% guess with an exact
+answer, which makes
 lexicon contributions the highest-leverage change anyone can make here --
 and they require Urdu, not familiarity with this codebase.
 
@@ -361,9 +362,12 @@ def _units(word: str) -> list[_Unit]:
         elif char == _SUKUN:
             pass
         elif char == "ا":
-            # Word-initial alef is a bare short vowel; word-final it is short
-            # again (لگتا -> lagta); medially it is long.
-            out.append(("a" if (i == 0 or is_final) else "aa", True))
+            # Always the short vowel /a/. An earlier version emitted "aa"
+            # medially on the theory that medial alef is long; tuning against
+            # the Dakshina training split showed that is wrong for everyday
+            # Roman Urdu -- کتاب is "kitab", not "kitaab" -- and the change
+            # was worth +6.4 points of accuracy on the dev split.
+            out.append(("a", True))
         elif char == "آ":
             out.append(("aa", True))
         elif char == "ی":
