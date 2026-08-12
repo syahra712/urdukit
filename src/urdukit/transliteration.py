@@ -30,8 +30,8 @@ Accuracy
 Benchmarked on the Dakshina Urdu test split (2,500 words held out by word and
 lemma; Roark et al., LREC 2020) via ``scripts/benchmark_dakshina.py``:
 
-- Matches the most-attested romanization: **14.5%**
-- Matches any attested romanization: **32.4%**
+- Matches the most-attested romanization: **15.0%**
+- Matches any attested romanization: **32.8%**
 - Lexicon words: exact *by construction* -- a lookup returns its own table
   entry, so this measures the lookup, not the correctness of the entry.
 
@@ -66,7 +66,7 @@ from __future__ import annotations
 from .normalization import normalize
 from .tokenization import word_tokenize
 
-__all__ = ["to_roman", "to_urdu", "LEXICON"]
+__all__ = ["to_roman", "to_urdu", "LEXICON", "LOANWORDS"]
 
 #: Aspirated consonants: a base consonant followed by ھ (U+06BE HEH
 #: DOACHASHMEE). These must be matched before single characters, or ``کھ``
@@ -276,6 +276,146 @@ LEXICON: dict[str, str] = {
     "جھوٹ": "jhoot",
 }
 
+#: English loanwords written in Urdu script.
+#:
+#: A large share of modern Urdu vocabulary is English borrowed wholesale.
+#: These romanize back to their *English spelling*, not to a phonetic
+#: transcription -- آرمی is "army", never "aarami" -- so no rule can derive
+#: them. They need recognition, which means a list.
+#:
+#: This table is far more reliable than :data:`LEXICON`: the target is an
+#: English word, so it is checkable rather than a judgement call about
+#: Roman Urdu spelling. 120 of the 121 entries that appear in the Dakshina
+#: corpus have their romanization attested there.
+#:
+#: Multi-word loanwords ("ویب سائٹ" -> "website") are not handled: lookup
+#: happens after tokenization, so a two-token key can never match.
+LOANWORDS: dict[str, str] = {
+    "اکیڈمی": "academy",
+    "ایجنسی": "agency",
+    "ایئرپورٹ": "airport",
+    "اخبار": "akhbar",
+    "ایپ": "app",
+    "ایریا": "area",
+    "آرمی": "army",
+    "بینک": "bank",
+    "بل": "bill",
+    "بورڈ": "board",
+    "بجٹ": "budget",
+    "بلڈنگ": "building",
+    "بس": "bus",
+    "کیمرہ": "camera",
+    "کار": "car",
+    "کیس": "case",
+    "سینٹر": "center",
+    "سنٹر": "center",
+    "چینل": "channel",
+    "کلاس": "class",
+    "کلب": "club",
+    "کالج": "college",
+    "کلر": "color",
+    "کمیٹی": "committee",
+    "کمپنی": "company",
+    "کمپیوٹر": "computer",
+    "کونسل": "council",
+    "کورٹ": "court",
+    "کرکٹ": "cricket",
+    "کپ": "cup",
+    "سائیکل": "cycle",
+    "ڈیٹا": "data",
+    "ڈیپارٹمنٹ": "department",
+    "ڈیجیٹل": "digital",
+    "ڈاکٹر": "doctor",
+    "الیکشن": "election",
+    "انرجی": "energy",
+    "انجن": "engine",
+    "انجینئر": "engineer",
+    "فیکٹری": "factory",
+    "فائل": "file",
+    "فلم": "film",
+    "فلیٹ": "flat",
+    "فٹبال": "football",
+    "فاؤنڈیشن": "foundation",
+    "گراؤنڈ": "ground",
+    "گروپ": "group",
+    "ہاکی": "hockey",
+    "ہاسپٹل": "hospital",
+    "اسپتال": "hospital",
+    "ہوٹل": "hotel",
+    "انسٹیٹیوٹ": "institute",
+    "انٹرنیٹ": "internet",
+    "انٹرویو": "interview",
+    "جہاز": "jahaz",
+    "لیبارٹری": "laboratory",
+    "لیول": "level",
+    "لائبریری": "library",
+    "لائن": "line",
+    "لسٹ": "list",
+    "مشین": "machine",
+    "منیجر": "manager",
+    "مارکیٹ": "market",
+    "ماسٹر": "master",
+    "میچ": "match",
+    "میڈیا": "media",
+    "منسٹر": "minister",
+    "موبائل": "mobile",
+    "ماڈل": "model",
+    "موٹر": "motor",
+    "نیوز": "news",
+    "نمبر": "number",
+    "آفس": "office",
+    "آفیسر": "officer",
+    "آرگن": "organ",
+    "آرگنائزیشن": "organisation",
+    "پارک": "park",
+    "پارلیمنٹ": "parliament",
+    "پارٹی": "party",
+    "پلان": "plan",
+    "پلاٹ": "plot",
+    "پوائنٹ": "point",
+    "پولیس": "police",
+    "پالیسی": "policy",
+    "پاور": "power",
+    "پریس": "press",
+    "پرنٹر": "printer",
+    "پروفیسر": "professor",
+    "پروگرام": "program",
+    "پروجیکٹ": "project",
+    "کوالٹی": "quality",
+    "ریڈیو": "radio",
+    "رپورٹ": "report",
+    "روڈ": "road",
+    "اسکول": "school",
+    "سکول": "school",
+    "اسکور": "score",
+    "سیکرٹری": "secretary",
+    "سیکٹر": "sector",
+    "سروس": "service",
+    "شاپ": "shop",
+    "سائز": "size",
+    "سافٹ": "soft",
+    "اسٹیج": "stage",
+    "اسٹیشن": "station",
+    "سٹیشن": "station",
+    "اسٹور": "store",
+    "اسٹائل": "style",
+    "سسٹم": "system",
+    "ٹیکس": "tax",
+    "ٹیکسی": "taxi",
+    "ٹیم": "team",
+    "ٹیکنالوجی": "technology",
+    "ٹکٹ": "ticket",
+    "ٹائم": "time",
+    "ٹریفک": "traffic",
+    "ٹرین": "train",
+    "ٹائپ": "type",
+    "یونیورسٹی": "university",
+    "ویڈیو": "video",
+    "ووٹ": "vote",
+    "وزیر": "wazir",
+    "زون": "zone",
+}
+
 #: Reverse lexicon for Roman -> Urdu. Built from :data:`LEXICON`; where two
 #: Urdu words share a romanization the first wins, which is one of several
 #: reasons the reverse direction is only a suggestion.
@@ -444,6 +584,8 @@ def to_roman(text: str) -> str:
     for token in word_tokenize(normalize(text)):
         if token in LEXICON:
             pieces.append(LEXICON[token])
+        elif token in LOANWORDS:
+            pieces.append(LOANWORDS[token])
         elif token in _PUNCTUATION_TO_LATIN:
             pieces.append(_PUNCTUATION_TO_LATIN[token])
         elif any(c in _CONSONANTS or c in _VOWELS for c in token):

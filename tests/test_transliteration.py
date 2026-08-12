@@ -58,6 +58,54 @@ class TestToRoman:
             assert any(c in "aeiou" for c in roman), f"{urdu} -> {roman}"
 
 
+class TestLoanwords:
+    """English loanwords written in Urdu script.
+
+    These romanize to their English spelling, which no phonetic rule can
+    derive. The table is far more trustworthy than LEXICON because the
+    target is an English word rather than a judgement call about Roman Urdu
+    spelling.
+    """
+
+    @pytest.mark.parametrize(
+        "urdu,english",
+        [
+            ("آرمی", "army"),
+            ("آرگن", "organ"),
+            ("آرگنائزیشن", "organisation"),
+            ("کمپیوٹر", "computer"),
+            ("انٹرنیٹ", "internet"),
+            ("پولیس", "police"),
+            ("یونیورسٹی", "university"),
+            ("کرکٹ", "cricket"),
+        ],
+    )
+    def test_known_loanwords(self, urdu, english):
+        assert X.to_roman(urdu) == english
+
+    def test_rules_alone_would_fail_these(self):
+        """Without the table, آرمی romanizes to nonsense like "aarami"."""
+        from urdukit.normalization import normalize
+
+        assert X._romanize_word(normalize("آرمی")) != "army"
+
+    def test_no_multi_word_keys(self):
+        """Lookup happens after tokenization, so a two-token key never fires."""
+        assert [k for k in X.LOANWORDS if " " in k] == []
+
+    def test_lexicon_wins_over_loanwords(self):
+        """A word in both tables must resolve via LEXICON."""
+        overlap = set(X.LEXICON) & set(X.LOANWORDS)
+        for word in overlap:
+            assert X.to_roman(word) == X.LEXICON[word]
+
+    def test_values_are_plausible_english(self):
+        import re
+
+        odd = [(k, v) for k, v in X.LOANWORDS.items() if not re.fullmatch(r"[a-z]+", v)]
+        assert odd == []
+
+
 class TestToUrdu:
     def test_lexicon_round_trip(self):
         for urdu, roman in X.LEXICON.items():

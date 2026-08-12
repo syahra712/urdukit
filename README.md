@@ -99,8 +99,8 @@ Benchmarked against the [Dakshina](https://github.com/google-research-datasets/d
 
 | | |
 |---|---|
-| Matches the **most-attested** romanization | **14.5%** |
-| Matches **any** attested romanization | **32.4%** |
+| Matches the **most-attested** romanization | **15.0%** |
+| Matches **any** attested romanization | **32.8%** |
 | Lexicon words | exact **by construction** — see the caveat below |
 
 Reproduce it yourself:
@@ -111,7 +111,9 @@ python scripts/benchmark_dakshina.py
 
 The script fetches only the Urdu lexicon files it needs and does not vendor the dataset — Dakshina is CC BY-SA 4.0, which is incompatible with redistribution inside this MIT package.
 
-**These numbers are low, for two reasons.** First, structural: Urdu script does not record short vowels. `استاد` is *ustad*, but nothing in ا-س-ت-ا-د says the first vowel is *u*. No rule can recover information that was never written down. Second, and more fixable: **a large share of Urdu vocabulary is English loanwords** — `آرمی` is *army*, `آرگن` is *organ*, `آرگنائزیشن` is *organisation*. Those romanize back to English spelling, which phonetic rules will never produce. See [issue #4](https://github.com/syahra712/urdukit/issues/4).
+**These numbers are low, for two reasons.** First, structural: Urdu script does not record short vowels. `استاد` is *ustad*, but nothing in ا-س-ت-ا-د says the first vowel is *u*. No rule can recover information that was never written down. Second, and more fixable: **a large share of Urdu vocabulary is English loanwords** — `آرمی` is *army*, `آرگنائزیشن` is *organisation*. Those romanize back to English spelling, which phonetic rules will never produce.
+
+There is now a `LOANWORDS` table of 123 such words. Where it applies it is close to exact — on the test-split words it covers, accuracy goes from **0% to 92%** (most-attested) and **17% to 100%** (any attested). It only moves the headline by half a point because 123 words cover just 12 of 2,500 test words. **Coverage is the entire constraint, and it is the easiest thing to contribute** — see [issue #4](https://github.com/syahra712/urdukit/issues/4).
 
 The fallback aims for a *pronounceable approximation*, not a correct answer.
 
@@ -180,7 +182,7 @@ pytest
 
 Stated up front rather than discovered later:
 
-- **Transliteration of unknown words is 14.5%/32.4% accurate** (most-attested / any-attested, Dakshina test split). See above.
+- **Transliteration of unknown words is 15.0%/32.8% accurate** (most-attested / any-attested, Dakshina test split). See above.
 - **The tokenizer does not recover omitted spaces.** `کتابہے` stays one token instead of becoming `کتاب ہے`. Urdu's ten non-joining letters (ا د ڈ ذ ر ڑ ز ژ و ے) mean writers routinely omit that space, but splitting it back needs a lexicon.
 - **Stemming is not lemmatization.** `گیا` will not become `جانا`, and Arabic broken plurals (`کتاب` → `کتب`) need a dictionary. Proper nouns ending in productive suffixes get over-stemmed: `کراچی` → `کراچ`.
 - **No POS tagging or NER.** Use [stanza](https://stanfordnlp.github.io/stanza/) for those.
