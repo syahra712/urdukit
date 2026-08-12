@@ -59,3 +59,13 @@ target-version = "py39"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "RUF"]
+ignore = [
+    # RUF001/2/3 flag "ambiguous" Unicode -- characters that resemble Latin
+    # ones. They exist to catch homoglyph attacks in source code. This is an
+    # Urdu library: Urdu text in string literals, docstrings and comments is
+    # the entire point, and these rules fire 168 times on correct code.
+    "RUF001", "RUF002", "RUF003",
+    # __all__ is grouped by submodule with comments, which is more useful to
+    # a reader than alphabetical order.
+    "RUF022",
+]

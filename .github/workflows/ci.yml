@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: py${{ matrix.python-version }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        include:
+          - os: macos-latest
+            python-version: "3.12"
+          - os: windows-latest
+            python-version: "3.12"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install
+        run: python -m pip install --upgrade pip && pip install -e ".[dev]"
+
+      - name: Test
+        run: pytest -q
+
+  no-dependencies:
+    name: imports with zero third-party packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The regression guard for the bug that made urduhack uninstallable:
+      # its __init__ imported TensorFlow unconditionally. Installing with no
+      # extras and importing proves urdukit needs nothing but the stdlib.
+      - name: Install without dev extras
+        run: python -m pip install --upgrade pip && pip install .
+
+      - name: Import from a clean environment
+        run: |
+          python -c "
+          import sys, urdukit, urdukit.compat.urduhack
+          heavy = {'tensorflow', 'torch', 'numpy', 'keras', 'scipy', 'pandas'}
+          leaked = heavy & set(sys.modules)
+          assert not leaked, f'heavy imports leaked: {leaked}'
+          assert urdukit.normalize('\u0645\u064f\u062d\u064e\u0645\u0651\u064e\u062f') == '\u0645\u062d\u0645\u062f'
+          print('import clean, no heavy deps, normalize OK')
+          "
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff check src tests
+      - run: ruff format --check src tests

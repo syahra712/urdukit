@@ -1,8 +1,8 @@
 """Transliteration behaviour and measured accuracy."""
 
 import pytest
-
 from gold.transliteration_gold import HELD_OUT, IN_LEXICON
+
 from urdukit import transliteration as X
 
 

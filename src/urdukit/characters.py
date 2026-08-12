@@ -165,64 +165,68 @@ INVISIBLE_CHARACTERS = frozenset(
 #: string match" bugs. U+064A and U+06CC render near-identically in most
 #: fonts but are distinct codepoints, so ``"علی" != "علي"`` even though both
 #: look like *Ali*.
-ARABIC_TO_URDU = MappingProxyType({
-    "ي": "ی",  # ي ARABIC YEH        -> ی FARSI YEH
-    "ى": "ی",  # ى ALEF MAKSURA      -> ی FARSI YEH
-    "ې": "ی",  # ې E                 -> ی FARSI YEH
-    "ك": "ک",  # ك ARABIC KAF        -> ک KEHEH
-    "ڪ": "ک",  # ڪ SWASH KAF         -> ک KEHEH
-    "ه": "ہ",  # ه ARABIC HEH        -> ہ HEH GOAL
-    "ۀ": "ۂ",  # ۀ HEH WITH YEH ABOVE-> ۂ HEH GOAL W/ HAMZA
-    "ة": "ہ",  # ة TEH MARBUTA       -> ہ HEH GOAL
-    "أ": "ا",  # أ ALEF WITH HAMZA   -> ا ALEF
-    "إ": "ا",  # إ ALEF WITH HAMZA BELOW -> ا ALEF
-    "ٱ": "ا",  # ٱ ALEF WASLA        -> ا ALEF
-    "ٲ": "ا",  # ٲ ALEF WITH WAVY HAMZA -> ا ALEF
-    "ٳ": "ا",  # ٳ ALEF WITH WAVY HAMZA BELOW -> ا ALEF
-    "ٵ": "ا",  # ٵ HIGH HAMZA ALEF   -> ا ALEF
-    "ۍ": "ی",  # ۍ YEH WITH TAIL     -> ی FARSI YEH
-    # NOTE: the decomposed sequence <U+064A YEH, U+0654 HAMZA ABOVE> also
-    # needs folding to U+0626, but that is a *canonical* composition, so NFC
-    # handles it. It is deliberately absent here: every key in this table is
-    # a single codepoint, which lets callers use ``str.translate``.
-})
+ARABIC_TO_URDU = MappingProxyType(
+    {
+        "ي": "ی",  # ي ARABIC YEH        -> ی FARSI YEH
+        "ى": "ی",  # ى ALEF MAKSURA      -> ی FARSI YEH
+        "ې": "ی",  # ې E                 -> ی FARSI YEH
+        "ك": "ک",  # ك ARABIC KAF        -> ک KEHEH
+        "ڪ": "ک",  # ڪ SWASH KAF         -> ک KEHEH
+        "ه": "ہ",  # ه ARABIC HEH        -> ہ HEH GOAL
+        "ۀ": "ۂ",  # ۀ HEH WITH YEH ABOVE-> ۂ HEH GOAL W/ HAMZA
+        "ة": "ہ",  # ة TEH MARBUTA       -> ہ HEH GOAL
+        "أ": "ا",  # أ ALEF WITH HAMZA   -> ا ALEF
+        "إ": "ا",  # إ ALEF WITH HAMZA BELOW -> ا ALEF
+        "ٱ": "ا",  # ٱ ALEF WASLA        -> ا ALEF
+        "ٲ": "ا",  # ٲ ALEF WITH WAVY HAMZA -> ا ALEF
+        "ٳ": "ا",  # ٳ ALEF WITH WAVY HAMZA BELOW -> ا ALEF
+        "ٵ": "ا",  # ٵ HIGH HAMZA ALEF   -> ا ALEF
+        "ۍ": "ی",  # ۍ YEH WITH TAIL     -> ی FARSI YEH
+        # NOTE: the decomposed sequence <U+064A YEH, U+0654 HAMZA ABOVE> also
+        # needs folding to U+0626, but that is a *canonical* composition, so NFC
+        # handles it. It is deliberately absent here: every key in this table is
+        # a single codepoint, which lets callers use ``str.translate``.
+    }
+)
 
 #: Presentation-form ligatures that must be decomposed to real letters.
 #:
 #: Closes urduhack issue #141 (normalize U+FDF2 to the spelled-out form).
-LIGATURES = MappingProxyType({
-    "ﷲ": "اللہ",  # ﷲ  ALLAH
-    "ﷺ": "صلی اللہ علیہ وسلم",  # ﷺ
-    "ﷻ": "جل جلالہ",  # ﷻ
-    "﷽": "بسم اللہ الرحمن الرحیم",  # ﷽
-    "ﻻ": "لا",  # ﻻ  LAM-ALEF
-    "ﻵ": "لآ",  # ﻵ  LAM-ALEF WITH MADDA
-    "ﻷ": "لا",  # ﻷ  LAM-ALEF WITH HAMZA ABOVE
-    "ﻹ": "لا",  # ﻹ  LAM-ALEF WITH HAMZA BELOW
-})
+LIGATURES = MappingProxyType(
+    {
+        "ﷲ": "اللہ",  # ﷲ  ALLAH
+        "ﷺ": "صلی اللہ علیہ وسلم",  # ﷺ
+        "ﷻ": "جل جلالہ",  # ﷻ
+        "﷽": "بسم اللہ الرحمن الرحیم",  # ﷽
+        "ﻻ": "لا",  # ﻻ  LAM-ALEF
+        "ﻵ": "لآ",  # ﻵ  LAM-ALEF WITH MADDA
+        "ﻷ": "لا",  # ﻷ  LAM-ALEF WITH HAMZA ABOVE
+        "ﻹ": "لا",  # ﻹ  LAM-ALEF WITH HAMZA BELOW
+    }
+)
 
 #: Digit folding tables, keyed by target system.
 _URDU_DIGIT_LIST = "۰۱۲۳۴۵۶۷۸۹"
 _ARABIC_DIGIT_LIST = "٠١٢٣٤٥٦٧٨٩"
 _ASCII_DIGIT_LIST = "0123456789"
 
-TO_URDU_DIGITS = MappingProxyType({
-    **{a: u for a, u in zip(_ARABIC_DIGIT_LIST, _URDU_DIGIT_LIST)},
-    **{a: u for a, u in zip(_ASCII_DIGIT_LIST, _URDU_DIGIT_LIST)},
-})
+TO_URDU_DIGITS = MappingProxyType(
+    {
+        **{a: u for a, u in zip(_ARABIC_DIGIT_LIST, _URDU_DIGIT_LIST)},
+        **{a: u for a, u in zip(_ASCII_DIGIT_LIST, _URDU_DIGIT_LIST)},
+    }
+)
 
-TO_ASCII_DIGITS = MappingProxyType({
-    **{u: a for u, a in zip(_URDU_DIGIT_LIST, _ASCII_DIGIT_LIST)},
-    **{u: a for u, a in zip(_ARABIC_DIGIT_LIST, _ASCII_DIGIT_LIST)},
-})
+TO_ASCII_DIGITS = MappingProxyType(
+    {
+        **{u: a for u, a in zip(_URDU_DIGIT_LIST, _ASCII_DIGIT_LIST)},
+        **{u: a for u, a in zip(_ARABIC_DIGIT_LIST, _ASCII_DIGIT_LIST)},
+    }
+)
 
 #: Every codepoint this library recognises as "Urdu script".
 URDU_ALL = (
-    URDU_LETTERS
-    | URDU_HAMZA_FORMS
-    | URDU_DIACRITICS
-    | URDU_DIGITS
-    | URDU_PUNCTUATION
+    URDU_LETTERS | URDU_HAMZA_FORMS | URDU_DIACRITICS | URDU_DIGITS | URDU_PUNCTUATION
 )
 
 

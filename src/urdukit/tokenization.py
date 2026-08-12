@@ -26,8 +26,8 @@ import re
 from .characters import (
     URDU_DIACRITICS,
     URDU_DIGITS,
-    URDU_LETTERS,
     URDU_HAMZA_FORMS,
+    URDU_LETTERS,
     ZERO_WIDTH_NON_JOINER,
 )
 
@@ -64,10 +64,10 @@ _WORD_CHARACTERS = (
 # in Urdu text), or a single other non-space character.
 _TOKEN = re.compile(
     rf"""
-      [{''.join(URDU_DIGITS)}0-9٠-٩]
-      (?: [.,٫٬] [{''.join(URDU_DIGITS)}0-9٠-٩] |
-          [{''.join(URDU_DIGITS)}0-9٠-٩] )*
-    | [{''.join(sorted(_WORD_CHARACTERS))}]+
+      [{"".join(URDU_DIGITS)}0-9٠-٩]
+      (?: [.,٫٬] [{"".join(URDU_DIGITS)}0-9٠-٩] |
+          [{"".join(URDU_DIGITS)}0-9٠-٩] )*
+    | [{"".join(sorted(_WORD_CHARACTERS))}]+
     | [A-Za-z]+ (?: ['’-][A-Za-z]+ )*
     | \S
     """,
@@ -164,5 +164,7 @@ def word_tokenize(text: str, *, keep_punctuation: bool = True) -> list[str]:
     tokens = [t for t in (tok.strip() for tok in tokens) if t]
 
     if not keep_punctuation:
-        tokens = [t for t in tokens if any(c.isalnum() or c in _WORD_CHARACTERS for c in t)]
+        tokens = [
+            t for t in tokens if any(c.isalnum() or c in _WORD_CHARACTERS for c in t)
+        ]
     return tokens

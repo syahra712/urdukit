@@ -70,7 +70,7 @@ class TestDigits:
         assert N.normalize_digits("۲۰۲۶", to="ascii") == "2026"
 
     def test_rejects_unknown_target(self):
-        with pytest.raises(ValueError, match="urdu.*ascii"):
+        with pytest.raises(ValueError, match=r"urdu.*ascii"):
             N.normalize_digits("۲۰۲۶", to="roman")
 
 
@@ -89,10 +89,7 @@ class TestInvisibleCharacters:
         assert N.remove_invisible(text, preserve_zwnj=True) == text
 
     def test_preserving_zwnj_still_strips_other_invisibles(self):
-        assert (
-            N.remove_invisible("کام‌​کاج", preserve_zwnj=True)
-            == "کام‌کاج"
-        )
+        assert N.remove_invisible("کام‌​کاج", preserve_zwnj=True) == "کام‌کاج"
 
 
 class TestPunctuation:

@@ -109,7 +109,8 @@ class TestSuffixTable:
         """وں must be tried before ں, or the longer suffix never fires."""
         suffixes = St.SUFFIXES
         assert suffixes.index("وں") < suffixes.index("ں")
-        assert suffixes.index("یاں") < suffixes.index("اں") if "اں" in suffixes else True
+        if "اں" in suffixes:
+            assert suffixes.index("یاں") < suffixes.index("اں")
 
     def test_destructive_suffixes_are_excluded(self):
         assert "ستان" not in St.SUFFIXES

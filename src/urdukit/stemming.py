@@ -28,24 +28,47 @@ __all__ = ["stem", "stem_tokens", "SUFFIXES"]
 #: the first match, so ``یوں`` must be tried before ``وں`` and ``ں``.
 SUFFIXES: tuple[str, ...] = (
     # --- verb / participial endings -------------------------------------
-    "ئیں", "یاں", "یوں", "ییں",
-    "تیں", "تاں",
-    "ہوں", "ہیں",
-    "گیا", "گئی", "گئے",
-    "نا", "نے", "نی",
-    "تا", "تی", "تے",
-    "یا", "ئی", "ئے",
-    "گا", "گی", "گے",
+    "ئیں",
+    "یاں",
+    "یوں",
+    "ییں",
+    "تیں",
+    "تاں",
+    "ہوں",
+    "ہیں",
+    "گیا",
+    "گئی",
+    "گئے",
+    "نا",
+    "نے",
+    "نی",
+    "تا",
+    "تی",
+    "تے",
+    "یا",
+    "ئی",
+    "ئے",
+    "گا",
+    "گی",
+    "گے",
     # --- derivational ---------------------------------------------------
     # Deliberately excluded: "ستان" and "ان". Both are real suffixes, but
     # they shred proper nouns -- "ستان" turns پاکستان into پاک, which is
     # etymologically true and useless as a stem. The Persian ان-plural is
     # rare in Urdu; وں is the productive one and is kept below.
-    "یات", "انہ", "وار", "دار",
+    "یات",
+    "انہ",
+    "وار",
+    "دار",
     "ات",
     # --- plural / oblique -----------------------------------------------
-    "وں", "یں",
-    "ں", "ے", "ا", "ی", "و",
+    "وں",
+    "یں",
+    "ں",
+    "ے",
+    "ا",
+    "ی",
+    "و",
 )
 
 #: Below this length a stem is more likely noise than signal.
@@ -93,7 +116,7 @@ def stem(word: str, *, min_length: int = MIN_STEM_LENGTH) -> str:
 def stem_tokens(tokens: list[str], *, min_length: int = MIN_STEM_LENGTH) -> list[str]:
     """Stem each token in *tokens*.
 
-        >>> stem_tokens(["کتابوں", "لڑکیاں"])
-        ['کتاب', 'لڑک']
+    >>> stem_tokens(["کتابوں", "لڑکیاں"])
+    ['کتاب', 'لڑک']
     """
     return [stem(token, min_length=min_length) for token in tokens]

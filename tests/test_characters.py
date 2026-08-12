@@ -81,9 +81,7 @@ def test_allah_ligature_uses_urdu_heh_goal():
 def test_diacritics_are_all_combining_marks():
     """Anything in the aerab table must be a zero-width combining mark."""
     non_combining = [
-        f"U+{ord(c):04X}"
-        for c in C.URDU_DIACRITICS
-        if unicodedata.category(c) != "Mn"
+        f"U+{ord(c):04X}" for c in C.URDU_DIACRITICS if unicodedata.category(c) != "Mn"
     ]
     assert non_combining == []
 

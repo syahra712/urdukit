@@ -30,7 +30,7 @@ class TestIsStopword:
             assert not S.is_stopword(word), word
 
     def test_arabic_codepoint_variant_is_recognised(self):
-        """"ہي" with Arabic YEH must match the stored "ہی"."""
+        """ "ہي" with Arabic YEH must match the stored "ہی"."""
         assert S.is_stopword("ہي")
 
     def test_diacritics_do_not_defeat_matching(self):
