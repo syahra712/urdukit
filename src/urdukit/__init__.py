@@ -36,6 +36,7 @@ from .normalization import (
 from .stemming import stem, stem_tokens
 from .stopwords import STOPWORDS, is_stopword, remove_stopwords
 from .tokenization import sentence_tokenize, word_tokenize
+from .transliteration import to_roman, to_urdu
 
 __version__ = "0.1.0"
 
@@ -64,4 +65,7 @@ __all__ = [
     # stemming
     "stem",
     "stem_tokens",
+    # transliteration
+    "to_roman",
+    "to_urdu",
 ]
