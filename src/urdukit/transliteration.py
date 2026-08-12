@@ -25,12 +25,18 @@ The reverse direction is harder still and genuinely ambiguous: Roman ``s``
 can be س, ص or ث, and ``k`` can be ک or ق. :func:`to_urdu` is best-effort
 and should be treated as a suggestion, not an answer.
 
-Measured accuracy
------------------
-Exact-match accuracy against ``tests/gold/transliteration_gold.py``:
+Accuracy
+--------
+Against ``tests/gold/transliteration_gold.py``:
 
-- Lexicon words: **100%**
-- Held-out words, rules only: **25%**
+- Held-out words, rules only: **25%** exact match.
+- Lexicon words: exact *by construction* -- a lookup returns its own table
+  entry, so this measures the lookup, not the correctness of the entry.
+
+.. warning::
+   The lexicon is seed-quality and unverified. The initial 118 entries were
+   machine-generated; a native-speaker spot-check of 12 found 1 incorrect,
+   so several wrong entries are expected to remain. Corrections welcome.
 
 The held-out figure is the honest one, and it is low. Recovering vowels the
 script never recorded is not something suffix rules can do well: ``استاد``

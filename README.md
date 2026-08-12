@@ -91,16 +91,20 @@ to_roman("میں پاکستان سے ہوں۔")   # 'mein pakistan se hun.'
 to_urdu("mein pakistan se hun")   # 'میں پاکستان سے ہوں'
 ```
 
-**Measured accuracy, honestly:**
+**Accuracy, stated carefully:**
 
-| | Exact match |
+There are two layers — a lookup table of 118 common words, and a rule-based fallback for everything else.
+
+| | |
 |---|---|
-| Lexicon words (118) | **100%** |
-| Held-out words (rules only) | **25%** |
+| Held-out words (rules only) | **25%** exact match |
+| Lexicon words | exact **by construction** — see the caveat below |
 
-25% is low, and it is low for a structural reason: **Urdu script does not record short vowels.** `استاد` is *ustad*, but nothing in ا-س-ت-ا-د says the first vowel is *u*. No suffix rule can recover information that was never written down.
+**25% is low for a structural reason:** Urdu script does not record short vowels. `استاد` is *ustad*, but nothing in ا-س-ت-ا-د says the first vowel is *u*. No suffix rule can recover information that was never written down. The fallback aims for a *pronounceable approximation*, not a correct answer.
 
-So there are two layers: an exact lexicon, and a rule-based fallback that aims for a *pronounceable approximation* rather than a correct answer. Adding a word to the lexicon moves it from ~25% to 100% — which makes lexicon contributions the single highest-leverage change anyone can make here. See [Contributing](#contributing).
+> ⚠️ **The lexicon is seed-quality and not yet verified.** Lexicon words return their table entry exactly, which means the *lookup* is reliable — it does **not** mean every entry is right. The initial 118 entries were machine-generated; a native-speaker spot-check of 12 found 1 incorrect, suggesting several more remain. Corrections are the most useful thing you can send. See [Contributing](#contributing).
+
+This is why the lexicon matters more than the rules: adding a correct word takes it from a ~25% guess to a reliable answer. It is also why the list needs more eyes than one author's.
 
 ## Migrating from urduhack
 
@@ -131,9 +135,26 @@ Python 3.9+. Nothing else.
 
 ## Contributing
 
-The most valuable contribution needs **Urdu, not familiarity with this codebase**: add words to the transliteration lexicon in [`src/urdukit/transliteration.py`](src/urdukit/transliteration.py). Every word added moves from a ~25% guess to a 100% answer.
+**If you speak Urdu, you can improve this library without reading a line of its code.**
 
-Also welcome: stopwords that are missing, stemmer suffixes that over- or under-strip, and any Urdu text this library handles wrongly — a failing example in an issue is genuinely useful.
+The transliteration lexicon in [`src/urdukit/transliteration.py`](src/urdukit/transliteration.py) is a plain dictionary of 118 Urdu→Roman pairs. Two things are needed:
+
+1. **Corrections.** The entries were machine-generated and are *not* verified. A spot-check of 12 found 1 wrong. If a romanization isn't how you'd actually type the word, that's a bug — please say so.
+2. **More words.** Common words are missing — `ماں`, `باپ`, `بھائی`, `بہن`, `سکول`, `استاد`, `بارش` and hundreds more. Each one added is a word the library stops guessing at.
+
+```python
+LEXICON: dict[str, str] = {
+    ...
+    "ماں": "maa",        # add lines like this
+    "بارش": "barish",
+}
+```
+
+Everyday Roman Urdu — how people actually text — not scholarly transliteration. `mohabbat`, not `muḥabbat`.
+
+An issue saying "`X` should be `Y`" is a complete contribution. You don't need to open a pull request, and you don't need to know Python.
+
+Also welcome: stopwords that are missing or shouldn't be there, stemmer suffixes that over- or under-strip, and any Urdu text this library handles wrongly.
 
 ```bash
 git clone https://github.com/syahra712/urdukit
