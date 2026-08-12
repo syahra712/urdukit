@@ -158,7 +158,7 @@ LEXICON: dict[str, str] = {
     "میرا": "mera",
     "میری": "meri",
     "تمہارا": "tumhara",
-    "ہمارا": "hamara",
+    "ہمارا": "humara",
     "اپنا": "apna",
     # postpositions / conjunctions
     "کا": "ka",

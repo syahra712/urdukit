@@ -58,3 +58,29 @@ class TestRemoveStopwords:
         the hazard visible rather than surprising.
         """
         assert S.is_stopword("نہیں")
+
+
+class TestReviewedByNativeSpeaker:
+    """Decisions from the pre-publication audit of the generated list.
+
+    These entries were adjudicated by a native Urdu speaker, so a future
+    change to any of them should be a deliberate one with a stated reason.
+    """
+
+    def test_content_nouns_were_removed(self):
+        """وجہ ("reason") and باعث ("cause") are nouns, not function words.
+
+        They read as stopwords only because they surface inside postpositional
+        phrases. Both were removed in review.
+        """
+        assert not S.is_stopword("وجہ")
+        assert not S.is_stopword("باعث")
+
+    def test_negations_and_intensifiers_were_kept(self):
+        """Reviewed and deliberately retained, matching standard practice.
+
+        The hazard is documented rather than designed around; callers doing
+        sentiment work are expected to keep these.
+        """
+        for word in ["نہیں", "نہ", "بہت", "کم"]:
+            assert S.is_stopword(word), word

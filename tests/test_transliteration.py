@@ -87,6 +87,26 @@ class TestMeasuredAccuracy:
         accuracy = hits / len(HELD_OUT)
         assert accuracy >= 0.25, f"held-out accuracy fell to {accuracy:.1%}"
 
+    def test_pronoun_family_romanizes_consistently(self):
+        """ہم is "hum", so ہمارا must be "humara", not "hamara".
+
+        Both spellings are defensible alone; together they were incoherent.
+        Resolved in the native-speaker review in favour of a consistent u.
+        """
+        assert X.LEXICON["ہم"] == "hum"
+        assert X.LEXICON["ہمارا"] == "humara"
+        assert X.LEXICON["ہمارا"].startswith(X.LEXICON["ہم"])
+
+    def test_house_style_is_single_consonants(self):
+        """Reviewed and confirmed: acha, not achha; chota, not chhota.
+
+        The aspirate contrast that ھ marks is deliberately not doubled in
+        Roman, matching how the words are actually typed.
+        """
+        assert X.LEXICON["اچھا"] == "acha"
+        assert X.LEXICON["چھوٹا"] == "chota"
+        assert X.LEXICON["بچہ"] == "bacha"
+
     def test_gold_held_out_set_is_not_contaminated(self):
         """A held-out word that leaks into the lexicon inflates the score.
 
