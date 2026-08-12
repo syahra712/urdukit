@@ -33,12 +33,17 @@ from .normalization import (
     remove_diacritics,
     remove_invisible,
 )
+from .stemming import stem, stem_tokens
+from .stopwords import STOPWORDS, is_stopword, remove_stopwords
+from .tokenization import sentence_tokenize, word_tokenize
 
 __version__ = "0.1.0"
 
 __all__ = [
     "__version__",
+    # characters
     "is_urdu_character",
+    # normalization
     "normalize",
     "normalize_unicode",
     "fold_arabic",
@@ -49,4 +54,14 @@ __all__ = [
     "remove_invisible",
     "collapse_whitespace",
     "is_normalized",
+    # tokenization
+    "sentence_tokenize",
+    "word_tokenize",
+    # stopwords
+    "STOPWORDS",
+    "is_stopword",
+    "remove_stopwords",
+    # stemming
+    "stem",
+    "stem_tokens",
 ]
