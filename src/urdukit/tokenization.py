@@ -13,15 +13,18 @@ of those already *looks* separated, so writers routinely omit the space
 after it: ``کتابہے`` for ``کتاب ہے``. The reverse also happens, with spaces
 appearing inside words after a non-joiner.
 
-This module solves the tractable half. Space *insertion* (splitting
-``کتابہے`` back into two words) requires a lexicon or a statistical model
-and is deliberately out of scope for the rule-based tokenizer; see
-:func:`word_tokenize` for what is and is not guaranteed.
+This module solves the tractable half by default. Space *insertion*
+(splitting ``کتابہے`` back into two words) needs a vocabulary to check
+candidate splits against, so it is off by default and opt-in via
+``word_tokenize(..., recover_spaces=True)`` -- see :func:`word_tokenize` for
+what is and is not guaranteed, and why it only ever acts on unambiguous
+splits.
 """
 
 from __future__ import annotations
 
 import re
+from collections.abc import Container
 
 from .characters import (
     URDU_DIACRITICS,
@@ -30,6 +33,7 @@ from .characters import (
     URDU_LETTERS,
     ZERO_WIDTH_NON_JOINER,
 )
+from .stopwords import STOPWORDS
 
 __all__ = [
     "sentence_tokenize",
@@ -134,7 +138,13 @@ def sentence_tokenize(text: str) -> list[str]:
     return sentences
 
 
-def word_tokenize(text: str, *, keep_punctuation: bool = True) -> list[str]:
+def word_tokenize(
+    text: str,
+    *,
+    keep_punctuation: bool = True,
+    recover_spaces: bool = False,
+    known_words: Container[str] | None = None,
+) -> list[str]:
     """Split *text* into word tokens.
 
     Handles the Urdu script, Latin code-switching, and both digit systems.
@@ -146,16 +156,34 @@ def word_tokenize(text: str, *, keep_punctuation: bool = True) -> list[str]:
     Args:
         text: Input text.
         keep_punctuation: If ``False``, drop punctuation-only tokens.
+        recover_spaces: If ``True``, attempt to recover an omitted space by
+            trying every split point in each token and splitting at one
+            where *both* halves are in ``known_words`` -- ``کتابہے`` becomes
+            ``کتاب`` + ``ہے`` rather than staying one token. A token is only
+            split when exactly one such point exists; an unrecognised token
+            or one with more than one valid split point is left untouched.
+            This is bounded by whatever vocabulary is supplied -- it is
+            genuine (if narrow) word segmentation, not a substitute for a
+            real model, and :data:`NON_JOINING_LETTERS` is background on
+            *why* the space is so often missing, not a constraint this
+            search applies.
+        known_words: The vocabulary candidate splits are checked against.
+            Defaults to :data:`urdukit.stopwords.STOPWORDS`, which alone
+            recovers the most common case -- an omitted space before a
+            trailing auxiliary verb or postposition. Callers with a larger
+            vocabulary (e.g. :data:`urdukit.transliteration.LEXICON`) can
+            pass it here for better coverage. Ignored if ``recover_spaces``
+            is ``False``.
 
     Returns:
         A list of tokens.
 
     Note:
-        This is a rule-based tokenizer: it splits on whitespace and
-        punctuation. It does **not** recover omitted spaces -- ``کتابہے``
-        stays one token rather than becoming ``کتاب`` + ``ہے``, because
-        deciding that split needs a lexicon. See :data:`NON_JOINING_LETTERS`
-        for why that error is so common in real Urdu text.
+        This is fundamentally a rule-based tokenizer: it splits on
+        whitespace and punctuation, and does not perform general word
+        segmentation. By default it does **not** recover omitted spaces --
+        ``کتابہے`` stays one token. Pass ``recover_spaces=True`` to recover
+        the unambiguous cases; see above.
     """
     if not text:
         return []
@@ -163,8 +191,35 @@ def word_tokenize(text: str, *, keep_punctuation: bool = True) -> list[str]:
     tokens = _TOKEN.findall(text)
     tokens = [t for t in (tok.strip() for tok in tokens) if t]
 
+    if recover_spaces:
+        vocabulary = STOPWORDS if known_words is None else known_words
+        tokens = [
+            piece for token in tokens for piece in _split_unjoined(token, vocabulary)
+        ]
+
     if not keep_punctuation:
         tokens = [
             t for t in tokens if any(c.isalnum() or c in _WORD_CHARACTERS for c in t)
         ]
     return tokens
+
+
+def _split_unjoined(token: str, vocabulary: Container[str]) -> list[str]:
+    """Split *token* in two if exactly one split point yields two known
+    words; otherwise return it unchanged.
+
+    Every split point is tried, not just those after a non-joining letter.
+    The boundary itself is often at an ordinary joining letter -- ``کتابہے``
+    splits after ``ب``, which connects fine -- because what a non-joiner
+    explains is why the *space* went missing, not where the letters happen
+    to visually connect.
+    """
+    candidates: list[tuple[str, str]] = []
+    for i in range(1, len(token)):
+        left, right = token[:i], token[i:]
+        if left in vocabulary and right in vocabulary:
+            candidates.append((left, right))
+
+    if len(candidates) == 1:
+        return list(candidates[0])
+    return [token]

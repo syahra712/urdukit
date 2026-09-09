@@ -13,8 +13,8 @@ Every word you add moves from a guess to an answer.
 ```python
 LEXICON: dict[str, str] = {
     ...
-    "استاد": "ustad",      # add lines like this
-    "خوبصورت": "khoobsurat",
+    "بازار": "bazaar",     # add lines like this
+    "چائے": "chai",
 }
 ```
 
@@ -43,7 +43,7 @@ pytest
 
 **Tests describe behaviour, not implementation.** Tests that reproduce a real urduhack issue cite its number. If you fix something, add the failing case as a test first.
 
-**Known limitations get pinned, not hidden.** Where the library is wrong on purpose — the tokenizer not recovering omitted spaces, the stemmer over-stemming `کراچی` — there is a test asserting the current behaviour. That way, improving it is a visible, deliberate change rather than a silent one. If you improve one, update its test and say so in the PR.
+**Known limitations get pinned, not hidden.** Where the library is wrong on purpose — the tokenizer not recovering omitted spaces *by default*, the stemmer over-stemming `کراچی` — there is a test asserting the current behaviour. That way, improving it is a visible, deliberate change rather than a silent one. If you improve one, update its test and say so in the PR. (The tokenizer's default is intentionally still pinned even though an opt-in `recover_spaces` now exists — see `TestRecoverSpaces` in `tests/test_tokenization.py` for the behaviour that changed and why the default didn't.)
 
 **Don't optimise a metric at the cost of the output.** A transliteration variant once scored higher by emitting `smndr` for `سمندر`. It was rejected: pronounceable-but-wrong beats unpronounceable-and-technically-closer. There is a test asserting every fallback output contains a vowel.
 
@@ -67,8 +67,8 @@ A large share of modern Urdu is English borrowed wholesale. Those words romanize
 پرنٹر       →  printer          ("paranatar")
 ```
 
-The `LOANWORDS` table in [`src/urdukit/transliteration.py`](src/urdukit/transliteration.py) has 123 of these. Where it applies it is near-exact — on the benchmark words it covers, accuracy goes from 0% to 92%. It only has 123 entries, so it covers very little.
+The `LOANWORDS` table in [`src/urdukit/transliteration.py`](src/urdukit/transliteration.py) has 143 of these (up from the original 123 — at that size, accuracy on the benchmark words it covers went from 0% to 92%). 143 entries still covers very little of everyday vocabulary — finance, medicine, law and technical terms are all thin.
 
 **This is the easiest thing to get right**, because the answer is just an English word — no judgement about Roman Urdu spelling is involved. If you can read the Urdu and recognise the English word, you can add the entry.
 
-Multi-word loanwords (`ویب سائٹ` → `website`) are not supported yet: lookup happens after tokenization, so a two-token key can never match. Fixing that is [issue #4](https://github.com/syahra712/urdukit/issues/4) territory too.
+Multi-word loanwords (`ویب سائٹ` → `website`, `ای میل` → `email`) now have a small home too: `PHRASE_LOANWORDS`, checked as an adjacent-token pair before the single-token tables. It only has a handful of entries — this is [issue #4](https://github.com/syahra712/urdukit/issues/4) territory, same as `LOANWORDS`.

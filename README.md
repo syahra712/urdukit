@@ -93,7 +93,7 @@ to_urdu("mein pakistan se hun")   # 'میں پاکستان سے ہوں'
 
 **Accuracy, measured on a standard benchmark:**
 
-There are two layers — a lookup table of 118 common words, and a rule-based fallback for everything else.
+There are two layers — a lookup table of 140 common words, and a rule-based fallback for everything else.
 
 Benchmarked against the [Dakshina](https://github.com/google-research-datasets/dakshina) Urdu test split (Google Research, LREC 2020) — 2,500 native-script words held out by both word and lemma:
 
@@ -113,11 +113,13 @@ The script fetches only the Urdu lexicon files it needs and does not vendor the 
 
 **These numbers are low, for two reasons.** First, structural: Urdu script does not record short vowels. `استاد` is *ustad*, but nothing in ا-س-ت-ا-د says the first vowel is *u*. No rule can recover information that was never written down. Second, and more fixable: **a large share of Urdu vocabulary is English loanwords** — `آرمی` is *army*, `آرگنائزیشن` is *organisation*. Those romanize back to English spelling, which phonetic rules will never produce.
 
-There is now a `LOANWORDS` table of 123 such words. Where it applies it is close to exact — on the test-split words it covers, accuracy goes from **0% to 92%** (most-attested) and **17% to 100%** (any attested). It only moves the headline by half a point because 123 words cover just 12 of 2,500 test words. **Coverage is the entire constraint, and it is the easiest thing to contribute** — see [issue #4](https://github.com/syahra712/urdukit/issues/4).
+There is now a `LOANWORDS` table of 143 such words (originally 123; measured at that size, accuracy on the test-split words it covers went from **0% to 92%** most-attested and **17% to 100%** any-attested — re-run the benchmark for the current figure). It still only moves the headline by a small amount because even 143 words cover a small fraction of 2,500 test words. **Coverage is the entire constraint, and it is the easiest thing to contribute** — see [issue #4](https://github.com/syahra712/urdukit/issues/4).
+
+A small `PHRASE_LOANWORDS` table also now covers a few common *two-word* loanwords that `LOANWORDS` structurally can't (`ویب سائٹ` → `website`, `ای میل` → `email`) — lookup there runs on adjacent token pairs before the single-token tables are checked.
 
 The fallback aims for a *pronounceable approximation*, not a correct answer.
 
-> ⚠️ **The lexicon is seed-quality and not yet verified.** Lexicon words return their table entry exactly, which means the *lookup* is reliable — it does **not** mean every entry is right. The initial 118 entries were machine-generated; a native-speaker spot-check of 12 found 1 incorrect, suggesting several more remain. Corrections are the most useful thing you can send. See [Contributing](#contributing).
+> ⚠️ **The lexicon is seed-quality and not yet fully verified.** Lexicon words return their table entry exactly, which means the *lookup* is reliable — it does **not** mean every entry is right. The initial 118 entries were machine-generated; a native-speaker spot-check of 12 found 1 incorrect, suggesting a few more may remain among the entries added since. Corrections are the most useful thing you can send. See [Contributing](#contributing).
 
 This is why the lexicon matters more than the rules: adding a correct word takes it from a ~32% guess to a reliable answer. It is also why the list needs more eyes than one author's.
 
@@ -152,16 +154,16 @@ Python 3.9+. Nothing else.
 
 **If you speak Urdu, you can improve this library without reading a line of its code.**
 
-The transliteration lexicon in [`src/urdukit/transliteration.py`](src/urdukit/transliteration.py) is a plain dictionary of 118 Urdu→Roman pairs. Two things are needed:
+The transliteration lexicon in [`src/urdukit/transliteration.py`](src/urdukit/transliteration.py) is a plain dictionary of 140 Urdu→Roman pairs. Two things are needed:
 
-1. **Corrections.** The entries were machine-generated and are *not* verified. A spot-check of 12 found 1 wrong. If a romanization isn't how you'd actually type the word, that's a bug — please say so.
-2. **More words.** Common words are missing — `ماں`, `باپ`, `بھائی`, `بہن`, `سکول`, `استاد`, `بارش` and hundreds more. Each one added is a word the library stops guessing at.
+1. **Corrections.** The entries were originally machine-generated. A spot-check of the first 118 found 1 wrong, and words added since haven't had a dedicated native-speaker pass either. If a romanization isn't how you'd actually type the word, that's a bug — please say so.
+2. **More words.** Common words are still missing — `بازار`, `کھیل`, `سفر`, `خط`, `چائے` and hundreds more. Each one added is a word the library stops guessing at.
 
 ```python
 LEXICON: dict[str, str] = {
     ...
-    "ماں": "maa",        # add lines like this
-    "بارش": "barish",
+    "بازار": "bazaar",   # add lines like this
+    "چائے": "chai",
 }
 ```
 
@@ -183,7 +185,7 @@ pytest
 Stated up front rather than discovered later:
 
 - **Transliteration of unknown words is 15.0%/32.8% accurate** (most-attested / any-attested, Dakshina test split). See above.
-- **The tokenizer does not recover omitted spaces.** `کتابہے` stays one token instead of becoming `کتاب ہے`. Urdu's ten non-joining letters (ا د ڈ ذ ر ڑ ز ژ و ے) mean writers routinely omit that space, but splitting it back needs a lexicon.
+- **The tokenizer does not recover omitted spaces by default.** `کتابہے` stays one token instead of becoming `کتاب` + `ہے`. `word_tokenize(..., recover_spaces=True)` opts in to lexicon-bounded recovery — it only splits where a vocabulary you supply resolves the split unambiguously — and `to_roman` already uses it. General word segmentation is still unsolved; see [issue #3](https://github.com/syahra712/urdukit/issues/3).
 - **Stemming is not lemmatization.** `گیا` will not become `جانا`, and Arabic broken plurals (`کتاب` → `کتب`) need a dictionary. Proper nouns ending in productive suffixes get over-stemmed: `کراچی` → `کراچ`.
 - **No POS tagging or NER.** Use [stanza](https://stanfordnlp.github.io/stanza/) for those.
 
