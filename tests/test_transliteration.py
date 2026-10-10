@@ -80,7 +80,7 @@ class TestLexiconAdditions:
             ("بچے", "bachay"),
             ("والد", "walid"),
             ("والدہ", "walida"),
-            ("علاقہ", "ilaka"),
+            ("علاقہ", "ilaqa"),
             ("سڑک", "sarak"),
             ("گاڑی", "gaari"),
             ("جگہ", "jagah"),
@@ -232,10 +232,10 @@ class TestSpaceRecovery:
     """
 
     def test_recovers_lexicon_word_glued_to_auxiliary(self):
-        assert X.to_roman("کتابہے") == "kitab hai"
+        assert X.to_roman("کتابہے", recover_spaces=True) == "kitab hai"
 
     def test_recovers_in_a_longer_sentence(self):
-        assert X.to_roman("یہ میری کتابہے") == "yeh meri kitab hai"
+        assert X.to_roman("یہ میری کتابہے", recover_spaces=True) == "yeh meri kitab hai"
 
 
 class TestToUrdu:

@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
         include:
           - os: macos-latest
             python-version: "3.12"
@@ -67,6 +67,30 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install ruff
-      - run: ruff check src tests
-      - run: ruff format --check src tests
+      - run: pip install -e ".[dev]"
+      - run: ruff check src tests scripts
+      - run: ruff format --check src tests scripts
+      - run: mypy
+
+  package:
+    name: builds and installs as a wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build twine
+      - run: python -m build
+      - run: twine check --strict dist/*
+      # An editable install cannot catch a file missing from the wheel.
+      - name: Import from the built wheel
+        run: |
+          pip install dist/*.whl
+          cd "$RUNNER_TEMP"
+          python -c "
+          import urdukit
+          from importlib import metadata, resources
+          assert metadata.version('urdukit') == urdukit.__version__
+          assert resources.files('urdukit').joinpath('py.typed').is_file()
+          "

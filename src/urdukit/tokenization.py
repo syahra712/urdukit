@@ -27,9 +27,11 @@ import re
 from collections.abc import Container
 
 from .characters import (
+    ARABIC_TO_URDU,
     URDU_DIACRITICS,
     URDU_DIGITS,
     URDU_HAMZA_FORMS,
+    URDU_HONORIFICS,
     URDU_LETTERS,
     ZERO_WIDTH_NON_JOINER,
 )
@@ -59,20 +61,42 @@ _ALL_DIGITS = URDU_DIGITS | set("0123456789٠١٢٣٤٥٦٧٨٩")
 # ۔, and treating "." as a boundary would shatter URLs, decimals and English
 # abbreviations embedded in the code-switched text that is normal here.
 
+#: Everything that can sit inside an Urdu word.
+#:
+#: Beyond the letters themselves this takes in the Arabic codepoints that
+#: :func:`urdukit.normalize` would fold (ي ك ه ...). A tokenizer that only
+#: knows the Urdu forms shreds un-normalized text -- ``علي`` came out as
+#: ``عل`` + ``ي`` -- and tokenizing must not depend on having normalized
+#: first. Tatweel is included for the same reason: it is noise inside a
+#: word, not a boundary.
 _WORD_CHARACTERS = (
-    URDU_LETTERS | URDU_HAMZA_FORMS | URDU_DIACRITICS | {ZERO_WIDTH_NON_JOINER}
+    URDU_LETTERS
+    | URDU_HAMZA_FORMS
+    | URDU_DIACRITICS
+    | URDU_HONORIFICS
+    | set(ARABIC_TO_URDU)
+    | {ZERO_WIDTH_NON_JOINER, "ـ"}
 )
 
-# A token is: a number (either digit system, with internal separators), a run
-# of Urdu word characters, a run of Latin letters (code-switching is endemic
-# in Urdu text), or a single other non-space character.
+_DIGIT_CLASS = f"{''.join(sorted(URDU_DIGITS))}0-9٠-٩"
+
+#: Latin letters including the accented ranges, so "café" is one token.
+_LATIN_CLASS = "A-Za-zÀ-ÖØ-öø-ɏ"
+
+# A token is, in order of precedence: a URL or email address (kept whole --
+# they are meaningless as a spray of punctuation), a number (either digit
+# system, with internal separators), a run of Urdu word characters, a run of
+# Latin letters (code-switching is endemic in Urdu text), or a single other
+# non-space character. The lookbehind on the email branch pins it to the
+# start of a run; without it "a.a.a...." is quadratic.
 _TOKEN = re.compile(
     rf"""
-      [{"".join(URDU_DIGITS)}0-9٠-٩]
-      (?: [.,٫٬] [{"".join(URDU_DIGITS)}0-9٠-٩] |
-          [{"".join(URDU_DIGITS)}0-9٠-٩] )*
+      (?:https?://|www\.) [^\s۔،؛؟<>"]* [^\s۔،؛؟<>"'.,;:!?)\]}}]
+    | (?<![\w.+-]) [\w.+-]+ @ [\w-]+ (?: \. [\w-]+ )+
+    | [{_DIGIT_CLASS}]
+      (?: [.,٫٬] [{_DIGIT_CLASS}] | [{_DIGIT_CLASS}] )*
     | [{"".join(sorted(_WORD_CHARACTERS))}]+
-    | [A-Za-z]+ (?: ['’-][A-Za-z]+ )*
+    | [{_LATIN_CLASS}]+ (?: ['’-][{_LATIN_CLASS}]+ )*
     | \S
     """,
     re.VERBOSE,
@@ -214,6 +238,11 @@ def _split_unjoined(token: str, vocabulary: Container[str]) -> list[str]:
     explains is why the *space* went missing, not where the letters happen
     to visually connect.
     """
+    # A token that is already a known word is a word, whatever its halves
+    # happen to spell: ہمارا is not ہم + ارا, and بلبل is not بل + بل.
+    if token in vocabulary:
+        return [token]
+
     candidates: list[tuple[str, str]] = []
     for i in range(1, len(token)):
         left, right = token[:i], token[i:]

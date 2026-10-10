@@ -1,14 +1,15 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
 name = "urdukit"
-version = "0.1.0"
+dynamic = ["version"]
 description = "A modern, dependency-free NLP toolkit for Urdu: normalization, tokenization, stemming and transliteration."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "Syed Ahnaf Raza", email = "syahra2014@gmail.com" }]
 keywords = [
     "urdu", "nlp", "natural-language-processing", "tokenization",
@@ -19,7 +20,6 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Natural Language :: Urdu",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
@@ -28,6 +28,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Text Processing :: Linguistic",
     "Typing :: Typed",
@@ -39,19 +40,31 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0", "pytest-cov>=4.0", "ruff>=0.4"]
+dev = ["pytest>=7.0", "pytest-cov>=4.0", "ruff>=0.4", "mypy>=1.10"]
 
 [project.urls]
 Homepage = "https://github.com/syahra712/urdukit"
 Repository = "https://github.com/syahra712/urdukit"
 Issues = "https://github.com/syahra712/urdukit/issues"
+Changelog = "https://github.com/syahra712/urdukit/blob/main/CHANGELOG.md"
+
+# One source of truth for the version: the package itself.
+[tool.hatch.version]
+path = "src/urdukit/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/urdukit"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+# src is collected too so the examples in docstrings are run as tests: a
+# documented example that has stopped being true is a bug.
+testpaths = ["tests", "src"]
 pythonpath = ["src", "tests"]
+addopts = "--doctest-modules"
+
+[tool.mypy]
+strict = true
+files = ["src/urdukit"]
 
 [tool.ruff]
 line-length = 88

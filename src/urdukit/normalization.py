@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from typing import Any, Literal
 
 from .characters import (
     ARABIC_TO_URDU,
@@ -42,6 +43,8 @@ __all__ = [
     "is_normalized",
 ]
 
+_UnicodeForm = Literal["NFC", "NFD", "NFKC", "NFKD"]
+
 #: U+0640 ARABIC TATWEEL -- a purely typographic elongation with no meaning.
 _TATWEEL = "ـ"
 
@@ -59,15 +62,29 @@ _TO_URDU_DIGIT_TABLE = str.maketrans(dict(TO_URDU_DIGITS))
 _TO_ASCII_DIGIT_TABLE = str.maketrans(dict(TO_ASCII_DIGITS))
 
 _REPEATED_FULL_STOP = re.compile("۔{2,}")
-_SPACE_BEFORE_PUNCT = re.compile(rf"\s+([{_CLINGING_PUNCTUATION}])")
+
+# The lookbehind pins a match to the *start* of a whitespace run. Without it
+# the engine retries from every position inside the run, which is quadratic:
+# 50,000 spaces took 40 seconds.
+_SPACE_BEFORE_PUNCT = re.compile(rf"(?<!\s)\s+([{_CLINGING_PUNCTUATION}])")
+
+#: Marks that close a quotation or bracket. A terminator followed by one of
+#: these already has the right spacing (``"چلو۔"``); inserting a space would
+#: detach the closing mark from its sentence. ASCII quotes are included
+#: because they are ambiguous -- they open as often as they close -- and
+#: leaving ambiguous text alone beats guessing.
+_NO_SPACE_INSERTED_BEFORE = "\"'”’)]}»"
+
 _MISSING_SPACE_AFTER_PUNCT = re.compile(
-    rf"([{_CLINGING_PUNCTUATION}])(?=[^\s{_CLINGING_PUNCTUATION}])"
+    rf"([{_CLINGING_PUNCTUATION}])"
+    rf"(?=[^\s{_CLINGING_PUNCTUATION}{re.escape(_NO_SPACE_INSERTED_BEFORE)}])"
 )
+
 _WHITESPACE_RUN = re.compile(r"[ \t  -   　]+")
 _BLANK_LINES = re.compile(r"\n{3,}")
 
 
-def normalize_unicode(text: str, form: str = "NFC") -> str:
+def normalize_unicode(text: str, form: _UnicodeForm = "NFC") -> str:
     """Apply a Unicode normalization *form* (default ``NFC``).
 
     NFC is the right default for Urdu: it composes sequences such as
@@ -150,7 +167,8 @@ def normalize_punctuation(text: str, *, collapse_repeats: bool = True) -> str:
     """Repair punctuation spacing.
 
     Removes space before clinging punctuation, guarantees one space after it,
-    and optionally collapses runs of ``۔`` (urduhack #52).
+    and optionally collapses runs of ``۔`` (urduhack #52). Decimals, clock
+    times and URL schemes are left alone.
 
         >>> normalize_punctuation("سلام ۔یہ کیا ہے ؟")
         'سلام۔ یہ کیا ہے؟'
@@ -159,8 +177,31 @@ def normalize_punctuation(text: str, *, collapse_repeats: bool = True) -> str:
     if collapse_repeats:
         text = _REPEATED_FULL_STOP.sub("۔", text)
     text = _SPACE_BEFORE_PUNCT.sub(r"\1", text)
-    text = _MISSING_SPACE_AFTER_PUNCT.sub(r"\1 ", text)
-    return text
+    return _MISSING_SPACE_AFTER_PUNCT.sub(_space_after, text)
+
+
+def _space_after(match: re.Match[str]) -> str:
+    """Add the missing space after a punctuation mark, unless it is not one.
+
+    Three things look like clinging punctuation and are not: a decimal point
+    (``۵۔۲``), a clock time or ratio (``12:30``), and a URL scheme
+    (``http://``). Spacing those out corrupts the text.
+    """
+    mark = match.group(1)
+    text = match.string
+    before = text[match.start() - 1] if match.start() else ""
+    after = text[match.end()]
+    if _is_digit(before) and _is_digit(after):
+        return mark
+    if mark == ":" and after == "/":
+        return mark
+    return mark + " "
+
+
+def _is_digit(char: str) -> bool:
+    return bool(char) and (
+        "0" <= char <= "9" or "۰" <= char <= "۹" or "٠" <= char <= "٩"
+    )
 
 
 def collapse_whitespace(text: str) -> str:
@@ -174,7 +215,7 @@ def collapse_whitespace(text: str) -> str:
 def normalize(
     text: str,
     *,
-    unicode_form: str = "NFC",
+    unicode_form: _UnicodeForm | None = "NFC",
     arabic: bool = True,
     diacritics: bool = True,
     ligatures: bool = True,
@@ -224,7 +265,7 @@ def normalize(
     return text
 
 
-def is_normalized(text: str, **kwargs) -> bool:
+def is_normalized(text: str, **kwargs: Any) -> bool:
     """Return ``True`` if *text* is unchanged by :func:`normalize`.
 
     Closes urduhack #60, which asked for exactly this predicate. Accepts the

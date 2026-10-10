@@ -38,7 +38,7 @@ from .stopwords import STOPWORDS, is_stopword, remove_stopwords
 from .tokenization import sentence_tokenize, word_tokenize
 from .transliteration import to_roman, to_urdu
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "__version__",
