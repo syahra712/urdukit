@@ -121,6 +121,52 @@ class TestWordTokenize:
         assert T.word_tokenize("کتابہے") == ["کتابہے"]
 
 
+class TestRecoverSpaces:
+    """Opt-in recovery of an omitted space via lexicon-based splitting.
+
+    Off by default -- see ``test_documented_limitation_omitted_space`` above,
+    which is unaffected by any of this. See issue #3.
+    """
+
+    def test_default_vocabulary_alone_may_not_recover_content_words(self):
+        """ "کتاب" is a content word, not a stopword, so recover_spaces alone
+        (without a richer known_words) does not split "کتابہے" -- to_roman
+        passes a richer vocabulary for exactly this reason.
+        """
+        assert T.word_tokenize("کتابہے", recover_spaces=True) == ["کتابہے"]
+
+    def test_unrelated_glued_token_is_untouched(self):
+        assert T.word_tokenize("ذرہذرہ", recover_spaces=True) == ["ذرہذرہ"]
+
+    def test_recovers_with_explicit_vocabulary(self):
+        assert T.word_tokenize(
+            "کتابہے", recover_spaces=True, known_words={"کتاب", "ہے"}
+        ) == ["کتاب", "ہے"]
+
+    def test_default_vocabulary_is_stopwords(self):
+        """دور ("far") and ہے ("is") are both stopwords; splits without help."""
+        assert T.word_tokenize("دورہے", recover_spaces=True) == ["دور", "ہے"]
+
+    def test_ambiguous_split_is_left_alone(self):
+        """ "دورہے" could be "دو" + "رہے" (two + stay) or "دور" + "ہے" (far + is).
+
+        Two valid splits means neither is safe to guess -- the token is left
+        untouched rather than picking one arbitrarily.
+        """
+        vocab = {"دو", "رہے", "دور", "ہے"}
+        assert T.word_tokenize("دورہے", recover_spaces=True, known_words=vocab) == [
+            "دورہے"
+        ]
+
+    def test_short_token_is_untouched(self):
+        assert T.word_tokenize("و", recover_spaces=True, known_words={"و"}) == ["و"]
+
+    def test_recover_spaces_false_ignores_known_words(self):
+        assert T.word_tokenize(
+            "کتابہے", recover_spaces=False, known_words={"کتاب", "ہے"}
+        ) == ["کتابہے"]
+
+
 class TestNonJoiningLetters:
     def test_set_contents(self):
         assert T.NON_JOINING_LETTERS == frozenset("ادڈذرڑزژوے")

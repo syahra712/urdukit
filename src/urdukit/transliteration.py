@@ -64,9 +64,10 @@ without checking the result.
 from __future__ import annotations
 
 from .normalization import normalize
+from .stopwords import STOPWORDS
 from .tokenization import word_tokenize
 
-__all__ = ["to_roman", "to_urdu", "LEXICON", "LOANWORDS"]
+__all__ = ["to_roman", "to_urdu", "LEXICON", "LOANWORDS", "PHRASE_LOANWORDS"]
 
 #: Aspirated consonants: a base consonant followed by ھ (U+06BE HEH
 #: DOACHASHMEE). These must be matched before single characters, or ``کھ``
@@ -274,6 +275,32 @@ LEXICON: dict[str, str] = {
     "علم": "ilm",
     "سچ": "sach",
     "جھوٹ": "jhoot",
+    # family
+    "ماں": "maa",
+    "باپ": "baap",
+    "بھائی": "bhai",
+    "بہن": "behan",
+    "بچے": "bachay",
+    "والد": "walid",
+    "والدہ": "walida",
+    # places / things
+    "علاقہ": "ilaka",
+    "سڑک": "sarak",
+    "گاڑی": "gaari",
+    "جگہ": "jagah",
+    "چیز": "cheez",
+    # nature
+    "درخت": "darakht",
+    "پھول": "phool",
+    "سورج": "suraj",
+    "چاند": "chand",
+    "ستارہ": "sitara",
+    "آسمان": "aasman",
+    "زمین": "zameen",
+    "آگ": "aag",
+    "موسم": "mausam",
+    # people
+    "طالب": "talib",
 }
 
 #: English loanwords written in Urdu script.
@@ -285,11 +312,14 @@ LEXICON: dict[str, str] = {
 #:
 #: This table is far more reliable than :data:`LEXICON`: the target is an
 #: English word, so it is checkable rather than a judgement call about
-#: Roman Urdu spelling. 120 of the 121 entries that appear in the Dakshina
-#: corpus have their romanization attested there.
+#: Roman Urdu spelling. Of the original 123-entry table, 120 of the 121
+#: entries that appear in the Dakshina corpus had their romanization
+#: attested there; re-run ``scripts/benchmark_dakshina.py`` for the current
+#: figure now that the table has grown.
 #:
-#: Multi-word loanwords ("ویب سائٹ" -> "website") are not handled: lookup
-#: happens after tokenization, so a two-token key can never match.
+#: Single-token only: lookup happens after tokenization, so a key
+#: containing a space could never match. Multi-word loanwords such as
+#: "ویب سائٹ" -> "website" go in :data:`PHRASE_LOANWORDS` instead.
 LOANWORDS: dict[str, str] = {
     "اکیڈمی": "academy",
     "ایجنسی": "agency",
@@ -414,6 +444,42 @@ LOANWORDS: dict[str, str] = {
     "ووٹ": "vote",
     "وزیر": "wazir",
     "زون": "zone",
+    # finance
+    "چیک": "cheque",
+    "کریڈٹ": "credit",
+    "اکاؤنٹ": "account",
+    "انشورنس": "insurance",
+    "ویزا": "visa",
+    "کرنسی": "currency",
+    # medicine
+    "کلینک": "clinic",
+    "انجکشن": "injection",
+    "آپریشن": "operation",
+    "کینسر": "cancer",
+    "وائرس": "virus",
+    "ویکسین": "vaccine",
+    "نرس": "nurse",
+    # law
+    "جج": "judge",
+    "اپیل": "appeal",
+    "لائسنس": "license",
+    # education / tech
+    "ڈگری": "degree",
+    "کورس": "course",
+    "لیکچرر": "lecturer",
+    "براؤزر": "browser",
+}
+
+#: Multi-word English loanwords written in Urdu script as two space-separated
+#: tokens -- :data:`LOANWORDS` cannot hold these because lookup happens after
+#: tokenization, so a key containing a space could never match a single
+#: token. Checked as an adjacent-token pair before per-token lookup in
+#: :func:`to_roman`. See issue #4.
+PHRASE_LOANWORDS: dict[str, str] = {
+    "ویب سائٹ": "website",
+    "ای میل": "email",
+    "ٹی وی": "tv",
+    "لیپ ٹاپ": "laptop",
 }
 
 #: Reverse lexicon for Roman -> Urdu. Built from :data:`LEXICON`; where two
@@ -422,6 +488,12 @@ LOANWORDS: dict[str, str] = {
 _REVERSE_LEXICON: dict[str, str] = {}
 for _urdu, _roman in LEXICON.items():
     _REVERSE_LEXICON.setdefault(_roman, _urdu)
+
+#: Vocabulary passed to ``word_tokenize(..., recover_spaces=True)``. Wider
+#: than :data:`urdukit.stopwords.STOPWORDS` alone, since a content word from
+#: LEXICON or LOANWORDS on either side of an omitted space is just as
+#: recoverable as a stopword -- see issue #3.
+_KNOWN_WORDS: frozenset[str] = frozenset(LEXICON) | frozenset(LOANWORDS) | STOPWORDS
 
 _ROMAN_TO_URDU = {
     "chh": "چھ",
@@ -567,9 +639,17 @@ def to_roman(text: str) -> str:
         >>> to_roman("میں پاکستان سے ہوں")
         'mein pakistan se hun'
 
-    Known words come from :data:`LEXICON` and are exact. Unknown words fall
-    back to rules with heuristic short-vowel insertion and will sometimes be
-    wrong; see the module docstring.
+    An omitted space is recovered where unambiguous, so a lexicon word glued
+    to the next is still resolved exactly rather than falling back to rules:
+
+        >>> to_roman("کتابہے")
+        'kitab hai'
+
+    Known words come from :data:`LEXICON` and are exact. English loanwords
+    come from :data:`LOANWORDS` (single token) and :data:`PHRASE_LOANWORDS`
+    (two tokens, e.g. ``ویب سائٹ`` -> ``website``) and are exact. Unknown
+    words fall back to rules with heuristic short-vowel insertion and will
+    sometimes be wrong; see the module docstring.
 
     Args:
         text: Urdu text.
@@ -580,8 +660,22 @@ def to_roman(text: str) -> str:
     if not text:
         return text
 
+    tokens = word_tokenize(
+        normalize(text), recover_spaces=True, known_words=_KNOWN_WORDS
+    )
+
     pieces: list[str] = []
-    for token in word_tokenize(normalize(text)):
+    i = 0
+    n = len(tokens)
+    while i < n:
+        if i + 1 < n:
+            phrase = f"{tokens[i]} {tokens[i + 1]}"
+            if phrase in PHRASE_LOANWORDS:
+                pieces.append(PHRASE_LOANWORDS[phrase])
+                i += 2
+                continue
+
+        token = tokens[i]
         if token in LEXICON:
             pieces.append(LEXICON[token])
         elif token in LOANWORDS:
@@ -592,6 +686,7 @@ def to_roman(text: str) -> str:
             pieces.append(_romanize_word(token))
         else:
             pieces.append(token)
+        i += 1
 
     return _join_with_punctuation(pieces)
 
