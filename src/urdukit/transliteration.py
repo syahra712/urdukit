@@ -30,8 +30,8 @@ Accuracy
 Benchmarked on the Dakshina Urdu test split (2,500 words held out by word and
 lemma; Roark et al., LREC 2020) via ``scripts/benchmark_dakshina.py``:
 
-- Matches the most-attested romanization: **15.0%**
-- Matches any attested romanization: **32.8%**
+- Matches the most-attested romanization: **16.0%**
+- Matches any attested romanization: **34.8%**
 - Lexicon words: exact *by construction* -- a lookup returns its own table
   entry, so this measures the lookup, not the correctness of the entry.
 
@@ -51,7 +51,7 @@ is *ustad*, but nothing in ا-س-ت-ا-د says the first vowel is *u*. The
 fallback aims at a pronounceable approximation, not a correct answer; the
 lexicon is the layer that is actually accurate.
 
-Adding a word to :data:`LEXICON` replaces a ~32% guess with an exact
+Adding a word to :data:`LEXICON` replaces a ~35% guess with an exact
 answer, which makes
 lexicon contributions the highest-leverage change anyone can make here --
 and they require Urdu, not familiarity with this codebase.
@@ -63,10 +63,12 @@ without checking the result.
 
 from __future__ import annotations
 
-from .normalization import normalize
+from .characters import TO_ASCII_DIGITS, URDU_HONORIFICS
+from .normalization import normalize, remove_diacritics
+from .stopwords import STOPWORDS
 from .tokenization import word_tokenize
 
-__all__ = ["to_roman", "to_urdu", "LEXICON", "LOANWORDS"]
+__all__ = ["to_roman", "to_urdu", "LEXICON", "LOANWORDS", "PHRASE_LOANWORDS"]
 
 #: Aspirated consonants: a base consonant followed by ھ (U+06BE HEH
 #: DOACHASHMEE). These must be matched before single characters, or ``کھ``
@@ -143,6 +145,13 @@ _DIACRITIC_VOWELS = {
     "ٰ": "a",  # khari zabar
     "ً": "an",  # do zabar
 }
+
+_SHORT_VOWEL_MARKS = frozenset("َُِ")
+
+#: Function words that differ only in a short vowel. These are the words
+#: Urdu writers actually do mark, precisely because the bare spelling is
+#: ambiguous, so the marked form is checked before the lexicon.
+_MARKED_HOMOGRAPHS = {"اِس": "is", "اُس": "us", "اِن": "in", "اُن": "un"}
 
 _SHADDA = "ّ"
 _SUKUN = "ْ"
@@ -274,6 +283,36 @@ LEXICON: dict[str, str] = {
     "علم": "ilm",
     "سچ": "sach",
     "جھوٹ": "jhoot",
+    # family
+    "ماں": "maa",
+    "باپ": "baap",
+    "بھائی": "bhai",
+    "بہن": "behan",
+    "بچے": "bachay",
+    "والد": "walid",
+    "والدہ": "walida",
+    # places / things
+    "علاقہ": "ilaqa",
+    "سڑک": "sarak",
+    "گاڑی": "gaari",
+    "جگہ": "jagah",
+    "چیز": "cheez",
+    # nature
+    "درخت": "darakht",
+    "پھول": "phool",
+    "سورج": "suraj",
+    "چاند": "chand",
+    "ستارہ": "sitara",
+    "آسمان": "aasman",
+    "زمین": "zameen",
+    "آگ": "aag",
+    "موسم": "mausam",
+    # people
+    "طالب": "talib",
+    "وزیر": "wazir",
+    # things
+    "اخبار": "akhbar",
+    "جہاز": "jahaz",
 }
 
 #: English loanwords written in Urdu script.
@@ -285,16 +324,18 @@ LEXICON: dict[str, str] = {
 #:
 #: This table is far more reliable than :data:`LEXICON`: the target is an
 #: English word, so it is checkable rather than a judgement call about
-#: Roman Urdu spelling. 120 of the 121 entries that appear in the Dakshina
-#: corpus have their romanization attested there.
+#: Roman Urdu spelling. Of the original 123-entry table, 120 of the 121
+#: entries that appear in the Dakshina corpus had their romanization
+#: attested there; re-run ``scripts/benchmark_dakshina.py`` for the current
+#: figure now that the table has grown.
 #:
-#: Multi-word loanwords ("ویب سائٹ" -> "website") are not handled: lookup
-#: happens after tokenization, so a two-token key can never match.
+#: Single-token only: lookup happens after tokenization, so a key
+#: containing a space could never match. Multi-word loanwords such as
+#: "ویب سائٹ" -> "website" go in :data:`PHRASE_LOANWORDS` instead.
 LOANWORDS: dict[str, str] = {
     "اکیڈمی": "academy",
     "ایجنسی": "agency",
     "ایئرپورٹ": "airport",
-    "اخبار": "akhbar",
     "ایپ": "app",
     "ایریا": "area",
     "آرمی": "army",
@@ -345,7 +386,6 @@ LOANWORDS: dict[str, str] = {
     "انسٹیٹیوٹ": "institute",
     "انٹرنیٹ": "internet",
     "انٹرویو": "interview",
-    "جہاز": "jahaz",
     "لیبارٹری": "laboratory",
     "لیول": "level",
     "لائبریری": "library",
@@ -412,16 +452,59 @@ LOANWORDS: dict[str, str] = {
     "یونیورسٹی": "university",
     "ویڈیو": "video",
     "ووٹ": "vote",
-    "وزیر": "wazir",
     "زون": "zone",
+    # finance
+    "چیک": "cheque",
+    "کریڈٹ": "credit",
+    "اکاؤنٹ": "account",
+    "انشورنس": "insurance",
+    "ویزا": "visa",
+    "کرنسی": "currency",
+    # medicine
+    "کلینک": "clinic",
+    "انجکشن": "injection",
+    "آپریشن": "operation",
+    "کینسر": "cancer",
+    "وائرس": "virus",
+    "ویکسین": "vaccine",
+    "نرس": "nurse",
+    # law
+    "جج": "judge",
+    "اپیل": "appeal",
+    "لائسنس": "license",
+    # education / tech
+    "ڈگری": "degree",
+    "کورس": "course",
+    "لیکچرر": "lecturer",
+    "براؤزر": "browser",
 }
 
-#: Reverse lexicon for Roman -> Urdu. Built from :data:`LEXICON`; where two
-#: Urdu words share a romanization the first wins, which is one of several
-#: reasons the reverse direction is only a suggestion.
+#: Multi-word English loanwords written in Urdu script as two space-separated
+#: tokens -- :data:`LOANWORDS` cannot hold these because lookup happens after
+#: tokenization, so a key containing a space could never match a single
+#: token. Checked as an adjacent-token pair before per-token lookup in
+#: :func:`to_roman`. See issue #4.
+PHRASE_LOANWORDS: dict[str, str] = {
+    "ویب سائٹ": "website",
+    "ای میل": "email",
+    "ٹی وی": "tv",
+    "لیپ ٹاپ": "laptop",
+}
+
+#: Reverse lexicon for Roman -> Urdu. Built from :data:`LEXICON`,
+#: :data:`LOANWORDS` and :data:`PHRASE_LOANWORDS`; where two Urdu words
+#: share a romanization the first wins, which is one of several reasons the
+#: reverse direction is only a suggestion.
 _REVERSE_LEXICON: dict[str, str] = {}
-for _urdu, _roman in LEXICON.items():
-    _REVERSE_LEXICON.setdefault(_roman, _urdu)
+for _table in (LEXICON, LOANWORDS, PHRASE_LOANWORDS):
+    for _urdu, _roman in _table.items():
+        _REVERSE_LEXICON.setdefault(_roman, _urdu)
+
+#: Vocabulary passed to ``word_tokenize(..., recover_spaces=True)``. Wider
+#: than :data:`urdukit.stopwords.STOPWORDS` alone, since a content word from
+#: LEXICON or LOANWORDS on either side of an omitted space is just as
+#: recoverable as a stopword -- see issue #3.
+_KNOWN_WORDS: frozenset[str] = frozenset(LEXICON) | frozenset(LOANWORDS) | STOPWORDS
 
 _ROMAN_TO_URDU = {
     "chh": "چھ",
@@ -497,9 +580,21 @@ def _units(word: str) -> list[_Unit]:
         if char in _DIACRITIC_VOWELS:
             out.append((_DIACRITIC_VOWELS[char], True))
         elif char == _SHADDA:
-            if out and out[-1][0]:
-                out.append((out[-1][0][-1], False))  # double the consonant
+            # Double the consonant. NFC orders a short vowel *before* the
+            # shadda that shares its letter (مَّ is stored meem, zabar,
+            # shadda), so the consonant to double may sit behind a vowel.
+            j = len(out) - 1
+            while j >= 0 and out[j][1]:
+                j -= 1
+            if j >= 0 and out[j][0]:
+                # One unit, not two: as separate consonants the pair would
+                # get a default vowel wedged between them.
+                out[j] = (out[j][0] + out[j][0][-1], False)
         elif char == _SUKUN:
+            pass
+        elif char == "ا" and word[i + 1 : i + 2] in _SHORT_VOWEL_MARKS:
+            # Alef carrying zabar, zer or pesh is only a seat for that vowel:
+            # اُس is "us", not "aus".
             pass
         elif char == "ا":
             # Always the short vowel /a/. An earlier version emitted "aa"
@@ -524,6 +619,15 @@ def _units(word: str) -> list[_Unit]:
                 out.append(("a", True))
             else:
                 out.append(("h", False))
+        elif char == "ع":
+            # Ain has no letter of its own in Roman Urdu; what survives is
+            # the vowel it carries -- علی is "ali", شروع is "shuroo"-ish,
+            # never "li". Before a written vowel that vowel already says it
+            # (معاف is "maaf"), so ain adds nothing there except at the
+            # start of a word (عام is "aam"). Tuned on the Dakshina training
+            # split: +0.5 points strict, +0.8 any-attested over silent ain.
+            if i == 0 or word[i + 1 : i + 2] not in _VOWELS:
+                out.append(("a", True))
         elif char in _CONSONANTS:
             out.append((_CONSONANTS[char], False))
         else:
@@ -561,39 +665,94 @@ def _romanize_word(word: str) -> str:
     return "".join(out)
 
 
-def to_roman(text: str) -> str:
+#: Combining marks that carry no sound: honorific signs and tatweel.
+_SILENT_TABLE = str.maketrans(dict.fromkeys([*URDU_HONORIFICS, "ـ"]))
+_ASCII_DIGIT_TABLE = str.maketrans(dict(TO_ASCII_DIGITS))
+
+
+def to_roman(text: str, *, recover_spaces: bool = False) -> str:
     """Transliterate Urdu script into everyday Roman Urdu.
 
         >>> to_roman("میں پاکستان سے ہوں")
         'mein pakistan se hun'
 
-    Known words come from :data:`LEXICON` and are exact. Unknown words fall
-    back to rules with heuristic short-vowel insertion and will sometimes be
-    wrong; see the module docstring.
+    Known words come from :data:`LEXICON` and are exact. English loanwords
+    come from :data:`LOANWORDS` (single token) and :data:`PHRASE_LOANWORDS`
+    (two tokens, e.g. ``ویب سائٹ`` -> ``website``) and are exact. Unknown
+    words fall back to rules with heuristic short-vowel insertion and will
+    sometimes be wrong; see the module docstring.
+
+    Aerab are used when the writer supplied them, because they are the one
+    case where the short vowels *are* in the text:
+
+        >>> to_roman("مُحَمَّد")
+        'muhammad'
 
     Args:
         text: Urdu text.
+        recover_spaces: Split a token in two where exactly one split yields
+            two known words, so a lexicon word glued to the next is still
+            resolved exactly:
+
+                >>> to_roman("کتابہے", recover_spaces=True)
+                'kitab hai'
+
+            Off by default. Measured on 24,922 real single words from the
+            Dakshina training split, it wrongly splits about 1 in 100
+            (``کاجو`` "cashew" becomes ``کا`` + ``جو``), which costs more
+            accuracy on ordinary text than it recovers.
 
     Returns:
-        Roman Urdu. Punctuation, digits and Latin runs pass through.
+        Roman Urdu. Digits come out as ASCII, punctuation as its Latin
+        equivalent, and Latin runs pass through.
     """
     if not text:
         return text
 
+    # Aerab survive normalization here: they are the short vowels, and
+    # stripping them first would throw away the only exact information the
+    # fallback ever gets.
+    tokens = word_tokenize(
+        normalize(text, diacritics=False),
+        recover_spaces=recover_spaces,
+        known_words=_KNOWN_WORDS,
+    )
+
     pieces: list[str] = []
-    for token in word_tokenize(normalize(text)):
-        if token in LEXICON:
-            pieces.append(LEXICON[token])
-        elif token in LOANWORDS:
-            pieces.append(LOANWORDS[token])
-        elif token in _PUNCTUATION_TO_LATIN:
-            pieces.append(_PUNCTUATION_TO_LATIN[token])
-        elif any(c in _CONSONANTS or c in _VOWELS for c in token):
-            pieces.append(_romanize_word(token))
+    i = 0
+    n = len(tokens)
+    while i < n:
+        token = tokens[i].translate(_SILENT_TABLE)
+        bare = remove_diacritics(token)
+
+        if i + 1 < n:
+            phrase = f"{bare} {remove_diacritics(tokens[i + 1])}"
+            if phrase in PHRASE_LOANWORDS:
+                pieces.append(PHRASE_LOANWORDS[phrase])
+                i += 2
+                continue
+
+        if token in _MARKED_HOMOGRAPHS:
+            pieces.append(_MARKED_HOMOGRAPHS[token])
+        elif bare in LEXICON:
+            pieces.append(LEXICON[bare])
+        elif bare in LOANWORDS:
+            pieces.append(LOANWORDS[bare])
+        elif bare in _PUNCTUATION_TO_LATIN:
+            pieces.append(_PUNCTUATION_TO_LATIN[bare])
+        elif any(c in _CONSONANTS or c in _VOWELS for c in bare):
+            # Rules see the marked form only when it actually has marks, so
+            # the unmarked path is byte-for-byte what the benchmark measures.
+            pieces.append(_romanize_word(token if token != bare else bare))
         else:
-            pieces.append(token)
+            pieces.append(bare.translate(_ASCII_DIGIT_TABLE))
+        i += 1
 
     return _join_with_punctuation(pieces)
+
+
+_LATIN_TO_URDU_PUNCTUATION = str.maketrans({".": "۔", ",": "،", ";": "؛", "?": "؟"})
+_EDGE_PUNCTUATION = ".,!?;:()[]{}\"'"
 
 
 def to_urdu(text: str) -> str:
@@ -610,19 +769,24 @@ def to_urdu(text: str) -> str:
         text: Roman Urdu text.
 
     Returns:
-        Urdu script.
+        Urdu script, with sentence punctuation converted (``?`` -> ``؟``).
     """
     if not text:
         return text
 
     pieces: list[str] = []
     for token in text.split():
-        stripped = token.strip(".,!?;:")
-        trailing = token[len(stripped) :]
-        lowered = stripped.lower()
+        core = token.strip(_EDGE_PUNCTUATION)
+        if not core:
+            pieces.append(token.translate(_LATIN_TO_URDU_PUNCTUATION))
+            continue
+        begin = token.index(core)
+        leading = token[:begin].translate(_LATIN_TO_URDU_PUNCTUATION)
+        trailing = token[begin + len(core) :].translate(_LATIN_TO_URDU_PUNCTUATION)
+        lowered = core.lower()
 
         if lowered in _REVERSE_LEXICON:
-            pieces.append(_REVERSE_LEXICON[lowered] + trailing)
+            pieces.append(leading + _REVERSE_LEXICON[lowered] + trailing)
             continue
 
         out: list[str] = []
@@ -637,7 +801,7 @@ def to_urdu(text: str) -> str:
             else:
                 out.append(lowered[i])
                 i += 1
-        pieces.append("".join(out) + trailing)
+        pieces.append(leading + "".join(out) + trailing)
 
     return " ".join(pieces)
 
@@ -647,14 +811,20 @@ _PUNCTUATION_TO_LATIN = {"۔": ".", "،": ",", "؛": ";", "؟": "?", "٪": "%"}
 
 #: Both scripts' punctuation: to_roman rewrites ؟ to ?, so the Latin forms
 #: must be here too or the output reads "hai ?".
-_NO_SPACE_BEFORE = set("۔،؛؟!:.,?)]}")
+_NO_SPACE_BEFORE = set("۔،؛؟!:.,?)]}%")
+_NO_SPACE_AFTER = set("([{")
 
 
 def _join_with_punctuation(pieces: list[str]) -> str:
     """Join tokens with spaces, but keep punctuation tight to its word."""
     out = ""
     for piece in pieces:
-        if out and piece and piece[0] not in _NO_SPACE_BEFORE:
+        if (
+            out
+            and piece
+            and piece[0] not in _NO_SPACE_BEFORE
+            and out[-1] not in _NO_SPACE_AFTER
+        ):
             out += " "
         out += piece
     return out

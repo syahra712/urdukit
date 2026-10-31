@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 
-from .characters import URDU_DIGITS, URDU_LETTERS, URDU_PUNCTUATION
+from .characters import ARABIC_DIGITS, URDU_DIGITS, URDU_LETTERS, URDU_PUNCTUATION
 from .normalization import collapse_whitespace
 
 __all__ = [
@@ -27,16 +27,21 @@ __all__ = [
 ]
 
 _URL_RE = re.compile(
-    r"(?:https?://|www\.)[^\s<>\"]+|\b[\w-]+\.(?:com|org|net|edu|gov|pk|io)\b[^\s<>\"]*",
+    # The lookbehinds here and in _EMAIL_RE pin a match to the start of a run;
+    # without them "a-a-a-..." and "a.a.a...." are quadratic.
+    r"(?:https?://|www\.)[^\s<>\"]+"
+    r"|(?<![\w-])[\w-]+\.(?:com|org|net|edu|gov|pk|io)\b[^\s<>\"]*",
     re.IGNORECASE,
 )
-_EMAIL_RE = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b")
+_EMAIL_RE = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w-]+\.[\w.-]+\b")
 _PHONE_RE = re.compile(
     r"(?:(?:\+|00)\d{1,3}[ -]?)?(?:\(\d{2,4}\)[ -]?)?\d{3,4}[ -]?\d{4,7}\b"
 )
 _CURRENCY_RE = re.compile(r"[$€£¥₹₨¢]")
 
-_URDU_DIGIT_CLASS = "".join(URDU_DIGITS)
+# Arabic-Indic digits (٠-٩) are routinely mixed into Urdu text; a number
+# written with them is still a number.
+_URDU_DIGIT_CLASS = "".join(sorted(URDU_DIGITS | ARABIC_DIGITS))
 _PUNCTUATION_CLASS = re.escape(
     "".join(URDU_PUNCTUATION) + "!\"#'()*+,-./:;<=>?@[]^_`{|}~"
 )
@@ -49,8 +54,11 @@ _DIGIT_BOUNDARY_RE = re.compile(
 _ENGLISH_BOUNDARY_RE = re.compile(
     rf"(?<=[{_URDU_LETTER_CLASS}])(?=[A-Za-z])|(?<=[A-Za-z])(?=[{_URDU_LETTER_CLASS}])"
 )
-_PUNCTUATION_BOUNDARY_RE = re.compile(rf"\s*([{_PUNCTUATION_CLASS}])\s*")
+_PUNCTUATION_BOUNDARY_RE = re.compile(rf"(?<!\s)\s*([{_PUNCTUATION_CLASS}])\s*")
 _PUNCTUATION_STRIP_RE = re.compile(rf"[{_PUNCTUATION_CLASS}]")
+_NUMBER_RE = re.compile(
+    rf"[{_URDU_DIGIT_CLASS}0-9]+(?:[.,٫٬][{_URDU_DIGIT_CLASS}0-9]+)*"
+)
 
 
 def normalize_whitespace(text: str) -> str:
@@ -70,10 +78,7 @@ def replace_emails(text: str, replace_with: str = "<EMAIL>") -> str:
 
 def replace_numbers(text: str, replace_with: str = "<NUMBER>") -> str:
     """Replace numbers -- in either digit system -- with *replace_with*."""
-    pattern = re.compile(
-        rf"[{_URDU_DIGIT_CLASS}0-9]+(?:[.,٫٬][{_URDU_DIGIT_CLASS}0-9]+)*"
-    )
-    return pattern.sub(replace_with, text)
+    return _NUMBER_RE.sub(replace_with, text)
 
 
 def replace_phone_numbers(text: str, replace_with: str = "<PHONE>") -> str:
