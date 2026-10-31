@@ -25,7 +25,7 @@ If a word has two common spellings, pick the more frequent one and don't agonise
 ## Also genuinely useful
 
 - **Stopwords** that are missing from [`stopwords.py`](src/urdukit/stopwords.py), or entries that shouldn't be there.
-- **Stemmer suffixes** that over-strip or under-strip. See the deliberately-excluded list in [`stemming.py`](src/urdukit/stemming.py) — `ستان` was removed because it turned `پاکستان` into `پاک`.
+- **Stemmer suffixes** that over-strip or under-strip, and common words for its `PROTECTED` list (words whose last letters only look like an ending, such as `پانی`). See [`stemming.py`](src/urdukit/stemming.py) — `ستان` was removed because it turned `پاکستان` into `پاک`. Measure any change with `python scripts/benchmark_ud.py --split dev --errors`; tune on train or dev and leave the test split for the final number.
 - **Any Urdu text this library handles wrongly.** A failing example in an issue is a real contribution; you do not need to fix it yourself.
 
 ## Setup
@@ -43,7 +43,7 @@ pytest
 
 **Tests describe behaviour, not implementation.** Tests that reproduce a real urduhack issue cite its number. If you fix something, add the failing case as a test first.
 
-**Known limitations get pinned, not hidden.** Where the library is wrong on purpose — the tokenizer not recovering omitted spaces *by default*, the stemmer over-stemming `کراچی` — there is a test asserting the current behaviour. That way, improving it is a visible, deliberate change rather than a silent one. If you improve one, update its test and say so in the PR. (The tokenizer's default is intentionally still pinned even though an opt-in `recover_spaces` now exists — see `TestRecoverSpaces` in `tests/test_tokenization.py` for the behaviour that changed and why the default didn't.)
+**Known limitations get pinned, not hidden.** Where the library is wrong on purpose — the tokenizer not recovering omitted spaces *by default*, the stemmer over-stemming `ہفتے` — there is a test asserting the current behaviour. That way, improving it is a visible, deliberate change rather than a silent one. If you improve one, update its test and say so in the PR. (The tokenizer's default is intentionally still pinned even though an opt-in `recover_spaces` now exists — see `TestRecoverSpaces` in `tests/test_tokenization.py` for the behaviour that changed and why the default didn't.)
 
 **Don't optimise a metric at the cost of the output.** A transliteration variant once scored higher by emitting `smndr` for `سمندر`. It was rejected: pronounceable-but-wrong beats unpronounceable-and-technically-closer. There is a test asserting every fallback output contains a vowel.
 
@@ -51,8 +51,9 @@ pytest
 
 ```bash
 pytest                      # tests
-ruff check src tests        # lint
-ruff format src tests       # format
+ruff check src tests scripts    # lint
+ruff format src tests scripts   # format
+mypy                            # types
 ```
 
 Note that `ruff`'s ambiguous-Unicode rules (RUF001/2/3) are disabled in [`pyproject.toml`](pyproject.toml). They flag characters that resemble Latin ones to catch homoglyph attacks, and in an Urdu library they fire 168 times on entirely correct code.

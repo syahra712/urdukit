@@ -11,3 +11,4 @@ htmlcov/
 .DS_Store
 dist_check/
 .dakshina_cache/
+.ud_cache/

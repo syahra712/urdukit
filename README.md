@@ -136,6 +136,32 @@ preprocessing.digits_space("سال2026میں")                       # 'سال 2
 
 Also `replace_emails`, `replace_phone_numbers`, `replace_currency_symbols`, `remove_punctuation`, `english_characters_space` and `all_punctuations_space`. All of them run in linear time on adversarial input — there is a test for it.
 
+## Benchmarks
+
+Every module that can be measured is measured against data annotated by people, not by this project:
+
+```bash
+python scripts/benchmark_dakshina.py   # transliteration  (Dakshina, CC BY-SA 4.0)
+python scripts/benchmark_ud.py         # everything else  (UD Urdu-UDTB, CC BY-NC-SA 4.0)
+```
+
+Both scripts download their data at runtime; neither dataset's licence allows it to ship inside an MIT package. Rules are tuned on the train splits, and the figures below are the test splits, run once.
+
+UD Urdu-UDTB, test split (535 sentences, 1,944 distinct content-word forms for stemming):
+
+| | Precision | Recall | F1 |
+|---|---:|---:|---:|
+| Word tokenization | 99.9% | 100.0% | 99.9% |
+| Sentence splitting | 99.8% | 98.7% | 99.2% |
+| Stemming (conflation) | 73.8% | 73.6% | **73.7%** |
+| &nbsp;&nbsp;stemmer in 0.1.0, for comparison | 73.5% | 58.8% | 65.3% |
+| &nbsp;&nbsp;no stemming, for scale | – | 0.0% | 0.0% |
+| Stopwords vs. closed-class POS | 85.8% | 91.3% | 88.5% |
+
+UD Urdu-UDTB is by Bhat et al. (2017), *The Hindi/Urdu Treebank Project*; cite it if you publish these numbers.
+
+Stemming is scored as conflation: two forms should share a stem exactly when the treebank's annotators gave them the same lemma. Some of the "errors" are the treebank being stricter than a search index needs (it keeps the noun `کھیل` apart from the verb `کھیلنا`), so read precision as a lower bound. Recall can't reach 100% either: irregular forms (`کیا` → `کرنا`) and Arabic broken plurals (`افراد` → `فرد`) are out of reach for any suffix rule.
+
 ## Migrating from urduhack
 
 Change one import:
@@ -199,7 +225,7 @@ Stated up front rather than discovered later:
 
 - **Transliteration of unknown words is 16.0%/34.8% accurate** (most-attested / any-attested, Dakshina test split). See above.
 - **The tokenizer does not recover omitted spaces by default.** `کتابہے` stays one token instead of becoming `کتاب` + `ہے`. `word_tokenize(..., recover_spaces=True)` opts in to lexicon-bounded recovery — it only splits where a vocabulary you supply resolves the split unambiguously — and `to_roman(..., recover_spaces=True)` does the same against its own tables. It is off by default in both because it is wrong often enough to matter: measured on 24,922 real single words from Dakshina, it split 1.2% of them (`کاجو`, cashew, became `کا` + `جو`). General word segmentation is still unsolved; see [issue #3](https://github.com/syahra712/urdukit/issues/3).
-- **Stemming is not lemmatization.** `گیا` will not become `جانا`, and Arabic broken plurals (`کتاب` → `کتب`) need a dictionary. Proper nouns ending in productive suffixes get over-stemmed: `کراچی` → `کراچ`.
+- **Stemming is not lemmatization.** `گیا` will not become `جانا`, and Arabic broken plurals (`کتاب` → `کتب`) need a dictionary. Words whose last letters look like an ending get over-stemmed (`ہفتے`, week, → `ہف`); a short hand-written `PROTECTED` list covers the commonest (`پانی`, `دنیا`, `کراچی`). Measured against the lemmas of the Urdu UD treebank the stemmer reaches 73.7% F1 on the test split — see [Benchmarks](#benchmarks).
 - **No POS tagging or NER.** Use [stanza](https://stanfordnlp.github.io/stanza/) for those.
 
 ## License

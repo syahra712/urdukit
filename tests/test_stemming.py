@@ -73,14 +73,14 @@ class TestInflectionGroupsCollapse:
 class TestKnownLimitations:
     """Documented gaps, pinned so that fixing them is a deliberate change."""
 
-    def test_proper_nouns_ending_in_common_suffixes_are_over_stemmed(self):
-        """کراچی -> کراچ.
+    def test_unlisted_words_ending_in_a_suffix_are_over_stemmed(self):
+        """ہفتے (week, oblique) -> ہف, because تے is also a verb ending.
 
-        The ی-suffix is far too productive to skip, and distinguishing a
-        proper noun needs a lexicon the rule-based stemmer does not have.
-        Every rule-based stemmer has this class of error.
+        The ی, تے and نا endings are far too productive to skip, and telling
+        a root letter from an inflection needs a dictionary. PROTECTED fixes
+        the commonest cases by hand; every other word is still exposed.
         """
-        assert St.stem("کراچی") == "کراچ"
+        assert St.stem("ہفتے") == "ہف"
 
     def test_pakistan_survives(self):
         """Guards the removal of the ستان and ان rules, which turned
@@ -94,6 +94,51 @@ class TestKnownLimitations:
     def test_broken_plurals_are_not_recovered(self):
         """Arabic broken plurals (کتاب -> کتب) need a dictionary."""
         assert St.stem("کتب") != "کتاب"
+
+
+class TestStagedStripping:
+    """The 0.2.0 design: future auxiliary, then one ending, then a glide."""
+
+    def test_fused_future_auxiliary(self):
+        assert St.stem("کریںگے") == "کر"
+        assert St.stem("جائےگا") == "جا"
+
+    def test_hamza_glide(self):
+        """ہوئے / ہوئی / ہو were three stems."""
+        assert St.stem("ہوئے") == St.stem("ہوئی") == St.stem("ہو") == "ہو"
+
+    def test_plural_after_waw(self):
+        assert St.stem("ہندوؤں") == St.stem("ہندو")
+
+    def test_final_heh_nouns(self):
+        assert St.stem("ہفتہ") == St.stem("ہفتوں")
+
+    def test_still_strips_only_one_ending(self):
+        """Not letter by letter: اچھے is اچھ, not اچ."""
+        assert St.stem("اچھے") == "اچھ"
+
+
+class TestProtected:
+    """Common words that end like an inflection and are not one."""
+
+    @pytest.mark.parametrize(
+        "word", ["پانی", "دنیا", "زندگی", "کراچی", "چائے", "اردو", "ہندو"]
+    )
+    def test_word_is_its_own_stem(self, word):
+        # پانی (water) was پا, which is also the root of پانا (to find).
+        assert St.stem(word) == word
+
+    @pytest.mark.parametrize(
+        "word,expected",
+        [("کہانیاں", "کہانی"), ("کہانیوں", "کہانی"), ("بھائیوں", "بھائی")],
+    )
+    def test_inflections_stem_to_the_protected_word(self, word, expected):
+        assert St.stem(word) == expected
+
+    def test_protected_entries_are_normalized(self):
+        from urdukit import normalize
+
+        assert all(normalize(w) == w for w in St.PROTECTED)
 
 
 class TestStemTokens:

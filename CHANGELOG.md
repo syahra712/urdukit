@@ -44,8 +44,17 @@ versions follow [Semantic Versioning](https://semver.org/).
 - `py.typed`. The package passes `mypy --strict`.
 - The benchmark script reports a rules-only figure, over words in neither
   lookup table.
+- `scripts/benchmark_ud.py` scores tokenization, sentence splitting,
+  stemming and stopwords against the Urdu UD treebank.
 
 ### Changed
+
+- **The stemmer was rewritten** as three ordered steps -- a fused future
+  auxiliary (`کریںگے`), one inflectional ending, a hanging hamza glide
+  (`ہوئے` -> `ہو`) -- with a hand-written `PROTECTED` list (`پانی`, `دنیا`,
+  `زندگی`, `کراچی`). Against UD Urdu-UDTB lemmas: F1 65.3% -> 73.7% on the test split.
+  Stems change, so rebuild any index built with 0.1.0.
+  Dropped the derivational `انہ`, `دار` and `یات`, which measured worse than nothing.
 
 - Space recovery in `to_roman` is **opt-in**. As first contributed it was on
   by default; measured on 24,922 single words from Dakshina it split 1.2% of
