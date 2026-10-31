@@ -3,7 +3,7 @@
 A modern, dependency-free NLP toolkit for Urdu — normalization, tokenization, stopwords, stemming and Roman Urdu transliteration.
 
 ```bash
-pip install git+https://github.com/syahra712/urdukit
+pip install git+https://github.com/syahra712/urdukit.git
 ```
 
 ```python
