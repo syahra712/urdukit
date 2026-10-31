@@ -119,6 +119,30 @@ class TestTokenizerKeepsWordsWhole:
         ]
 
 
+class TestFoundAgainstTheTreebank:
+    """Defects found by scoring against UD Urdu-UDTB (human-annotated)."""
+
+    def test_bari_yeh_before_noon_ghunna(self):
+        # مےں is the commonest spelling of میں in the treebank; none of it
+        # matched the stopword list.
+        assert N.normalize("وہ گھر مےں ہےں") == "وہ گھر میں ہیں"
+        assert S.is_stopword("مےں")
+
+    def test_word_final_bari_yeh_is_untouched(self):
+        assert N.normalize("کیسے ہے") == "کیسے ہے"
+
+    @pytest.mark.parametrize("token", ["2G", "covid19", "G20", "mp3"])
+    def test_alphanumeric_token_stays_whole(self, token):
+        assert T.word_tokenize(f"{token} میں") == [token, "میں"]
+
+    def test_plain_numbers_still_separate(self):
+        assert T.word_tokenize("5 کتابیں 3.5") == ["5", "کتابیں", "3.5"]
+
+    @pytest.mark.parametrize("word", ["کسی", "کس", "تحت"])
+    def test_treebank_function_words(self, word):
+        assert S.is_stopword(word)
+
+
 class TestArabicIndicDigits:
     """٠-٩ were handled by normalize and the tokenizer but not by these."""
 

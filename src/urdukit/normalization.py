@@ -104,8 +104,17 @@ def fold_arabic(text: str) -> str:
 
         >>> fold_arabic("علي") == "علی"
         True
+
+    It also repairs the other yeh confusion: YEH BARREE ``ے`` written where
+    ``ی`` belongs, before noon ghunna. ``ں`` only ever ends a word, so a
+    ``ے`` in front of it is never word-final and never correct. Text
+    transcoded from Hindi-oriented encodings does this throughout -- in the
+    Urdu UD treebank ``مےں`` outnumbers ``میں``.
+
+        >>> fold_arabic("مےں") == "میں"
+        True
     """
-    return text.translate(_ARABIC_FOLD_TABLE)
+    return text.translate(_ARABIC_FOLD_TABLE).replace("ےں", "یں")
 
 
 def remove_diacritics(text: str) -> str:

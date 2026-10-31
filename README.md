@@ -76,7 +76,7 @@ content = remove_stopwords(tokens)   # ['کتابیں', 'پڑھنا', 'اچھا'
 stem_tokens(content)                 # ['کتاب', 'پڑھ', 'اچھ', 'لگ']
 ```
 
-208 curated stopwords, stored normalized so Arabic-codepoint variants still match.
+212 curated stopwords, stored normalized so Arabic-codepoint variants still match.
 
 ⚠️ `نہیں` ("not") is a stopword. Strip it before sentiment analysis and you invert your labels.
 

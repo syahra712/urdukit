@@ -26,6 +26,10 @@ versions follow [Semantic Versioning](https://semver.org/).
 - `to_urdu` now knows the loanword table (`doctor` → `ڈاکٹر`) and converts
   `. , ; ?` to their Urdu forms, including on a token of their own.
 - `replace_numbers` and `digits_space` now handle Arabic-Indic digits (٠-٩).
+- `fold_arabic` (and so `normalize`) repairs `ےں` to `یں`. Transcoded text
+  writes `مےں` for `میں` throughout; in the Urdu UD treebank it is the
+  commonest spelling of the word, and stopword matching missed all of it.
+- Alphanumeric tokens stay whole: `2G`, `covid19`, `G20`.
 - `اخبار`, `جہاز` and `وزیر` were filed under English loanwords. They are not.
 
 ### Added
@@ -34,7 +38,8 @@ versions follow [Semantic Versioning](https://semver.org/).
   loanwords (`ویب سائٹ` → `website`), and lexicon-bounded space recovery:
   `word_tokenize(..., recover_spaces=True, known_words=...)` and
   `to_roman(..., recover_spaces=True)`. Contributed by @mwzkhalil (#5).
-- 21 stopwords, mostly oblique pronoun forms (`مجھے`, `ہمیں`, `انہیں`, `اسے`).
+- 25 stopwords: oblique pronoun forms (`مجھے`, `ہمیں`, `انہیں`, `اسے`) and,
+  from the UD treebank, `کسی`, `کس`, `تحت`, `و`.
 - `characters.URDU_HONORIFICS`; `ۃ` in `URDU_HAMZA_FORMS`.
 - `py.typed`. The package passes `mypy --strict`.
 - The benchmark script reports a rules-only figure, over words in neither
@@ -46,7 +51,7 @@ versions follow [Semantic Versioning](https://semver.org/).
   by default; measured on 24,922 single words from Dakshina it split 1.2% of
   them (`کاجو` → `کا` + `جو`) and lowered benchmark accuracy.
 - Dakshina test split: 15.0% → **16.0%** most-attested, 32.8% → **34.8%** any-attested.
-- `STOPWORDS` grew from 187 to 208, so `remove_stopwords` removes more.
+- `STOPWORDS` grew from 187 to 212, so `remove_stopwords` removes more.
 
 ## [0.1.0]
 

@@ -93,6 +93,8 @@ _TOKEN = re.compile(
     rf"""
       (?:https?://|www\.) [^\s۔،؛؟<>"]* [^\s۔،؛؟<>"'.,;:!?)\]}}]
     | (?<![\w.+-]) [\w.+-]+ @ [\w-]+ (?: \. [\w-]+ )+
+    | [0-9]+ [{_LATIN_CLASS}] [0-9{_LATIN_CLASS}]*
+    | [{_LATIN_CLASS}]+ [0-9] [0-9{_LATIN_CLASS}]*
     | [{_DIGIT_CLASS}]
       (?: [.,٫٬] [{_DIGIT_CLASS}] | [{_DIGIT_CLASS}] )*
     | [{"".join(sorted(_WORD_CHARACTERS))}]+
