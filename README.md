@@ -125,7 +125,7 @@ The fallback aims for a *pronounceable approximation*, not a correct answer. The
 
 This is why the lexicon matters more than the rules: adding a correct word takes it from a ~35% guess to a reliable answer. It is also why the list needs more eyes than one author's.
 
-**Roman → Urdu, and spelling variants.** Roman Urdu has no standard spelling: the same میں arrives as `main`, `mein`, `mai` or `me`, and نہیں as `nahi`, `nahin` or `nhi`. `to_urdu` checks a hand-written `ROMAN_VARIANTS` table of about 160 such spellings before falling back to letter rules:
+**Roman → Urdu, and spelling variants.** Roman Urdu has no standard spelling: the same میں arrives as `main`, `mein`, `mai` or `me`, and نہیں as `nahi`, `nahin` or `nhi`. `to_urdu` checks a hand-written `ROMAN_VARIANTS` table of 144 such spellings before falling back to letter rules:
 
 ```python
 to_urdu("mai pakistan sy hu")                   # 'میں پاکستان سے ہوں'
