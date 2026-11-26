@@ -34,6 +34,13 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `ROMAN_VARIANTS`: 144 hand-written Roman Urdu spellings (`mai`, `main`,
+  `me` → `میں`; `hu`, `hoon` → `ہوں`) that `to_urdu` resolves before its
+  letter rules. On Dakshina's romanized test sentences, token accuracy goes
+  from 42.2% to **46.1%**. `to_urdu(..., variants=False)` keeps the old
+  behaviour. Not yet checked by a native speaker (#8).
+- `scripts/benchmark_dakshina.py --direction to_urdu` measures Roman → Urdu (#8).
+- `scripts/benchmark_speed.py`, a stdlib `timeit` benchmark (#8).
 - 22 lexicon words, 20 loanwords, a `PHRASE_LOANWORDS` table for two-word
   loanwords (`ویب سائٹ` → `website`), and lexicon-bounded space recovery:
   `word_tokenize(..., recover_spaces=True, known_words=...)` and
@@ -61,6 +68,8 @@ versions follow [Semantic Versioning](https://semver.org/).
   them (`کاجو` → `کا` + `جو`) and lowered benchmark accuracy.
 - Dakshina test split: 15.0% → **16.0%** most-attested, 32.8% → **34.8%** any-attested.
 - `STOPWORDS` grew from 187 to 212, so `remove_stopwords` removes more.
+- `normalize` folds Arabic-Indic digits (٠-٩) to Urdu digits (۰-۹) by default,
+  so `normalize("٢٠٢٦")` is `۲۰۲۶` (#8).
 
 ## [0.1.0]
 
