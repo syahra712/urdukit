@@ -58,6 +58,62 @@ class TestToRoman:
             assert any(c in "aeiou" for c in roman), f"{urdu} -> {roman}"
 
 
+class TestLexiconAdditions:
+    """New LEXICON entries for common words the fallback can't reliably
+    guess (family, everyday nouns, nature). See issue #1.
+
+    ``برف``, ``استاد`` and ``بارش`` are deliberately not added here even
+    though issue #1 lists them: they're reserved in
+    ``tests/gold/transliteration_gold.py``'s HELD_OUT set to measure the
+    rule-based fallback honestly, and moving them out of that set is a
+    separate call for the maintainer, not something to bundle silently into
+    a lexicon PR.
+    """
+
+    @pytest.mark.parametrize(
+        "urdu,roman",
+        [
+            ("ماں", "maa"),
+            ("باپ", "baap"),
+            ("بھائی", "bhai"),
+            ("بہن", "behan"),
+            ("بچے", "bachay"),
+            ("والد", "walid"),
+            ("والدہ", "walida"),
+            ("علاقہ", "ilaqa"),
+            ("سڑک", "sarak"),
+            ("گاڑی", "gaari"),
+            ("جگہ", "jagah"),
+            ("چیز", "cheez"),
+            ("درخت", "darakht"),
+            ("پھول", "phool"),
+            ("سورج", "suraj"),
+            ("چاند", "chand"),
+            ("ستارہ", "sitara"),
+            ("آسمان", "aasman"),
+            ("زمین", "zameen"),
+            ("آگ", "aag"),
+            ("موسم", "mausam"),
+            ("طالب", "talib"),
+        ],
+    )
+    def test_new_words(self, urdu, roman):
+        assert X.LEXICON[urdu] == roman
+        assert X.to_roman(urdu) == roman
+
+    def test_school_and_college_already_covered_by_loanwords(self):
+        """Both were on issue #1's list but are already handled as
+        loanwords (``اسکول``/``سکول`` -> school, ``کالج`` -> college), so
+        they're not duplicated into LEXICON."""
+        assert X.to_roman("سکول") == "school"
+        assert X.to_roman("کالج") == "college"
+
+    def test_held_out_words_are_not_added(self):
+        """See the class docstring: these three stay out of LEXICON."""
+        for word in ("برف", "استاد", "بارش"):
+            assert word not in X.LEXICON
+
+
 class TestLoanwords:
     """English loanwords written in Urdu script.
 
@@ -104,6 +160,82 @@ class TestLoanwords:
 
         odd = [(k, v) for k, v in X.LOANWORDS.items() if not re.fullmatch(r"[a-z]+", v)]
         assert odd == []
+
+    @pytest.mark.parametrize(
+        "urdu,english",
+        [
+            ("چیک", "cheque"),
+            ("کریڈٹ", "credit"),
+            ("اکاؤنٹ", "account"),
+            ("انشورنس", "insurance"),
+            ("ویزا", "visa"),
+            ("کرنسی", "currency"),
+            ("کلینک", "clinic"),
+            ("انجکشن", "injection"),
+            ("آپریشن", "operation"),
+            ("کینسر", "cancer"),
+            ("وائرس", "virus"),
+            ("ویکسین", "vaccine"),
+            ("نرس", "nurse"),
+            ("جج", "judge"),
+            ("اپیل", "appeal"),
+            ("لائسنس", "license"),
+            ("ڈگری", "degree"),
+            ("کورس", "course"),
+            ("لیکچرر", "lecturer"),
+            ("براؤزر", "browser"),
+        ],
+    )
+    def test_new_coverage_categories(self, urdu, english):
+        """New entries across finance, medicine, law, and education/tech --
+        the categories issue #4's follow-up comment flagged as missing."""
+        assert X.to_roman(urdu) == english
+
+
+class TestPhraseLoanwords:
+    """Multi-word English loanwords written as two Urdu tokens.
+
+    LOANWORDS can't hold these -- lookup happens per-token after
+    tokenization, so a key with a space could never match. See issue #4.
+    """
+
+    @pytest.mark.parametrize(
+        "urdu,english",
+        [
+            ("ویب سائٹ", "website"),
+            ("ای میل", "email"),
+            ("ٹی وی", "tv"),
+            ("لیپ ٹاپ", "laptop"),
+        ],
+    )
+    def test_known_phrases(self, urdu, english):
+        assert X.to_roman(urdu) == english
+
+    def test_no_single_word_keys(self):
+        assert all(" " in k for k in X.PHRASE_LOANWORDS)
+
+    def test_phrase_in_a_sentence(self):
+        assert X.to_roman("میری ویب سائٹ اچھی ہے") == "meri website achhi hai"
+
+    def test_component_tokens_alone_still_resolve(self):
+        """A phrase match must not swallow tokens it doesn't recognise --
+        splitting "ویب سائٹ پر" should only combine the first two."""
+        result = X.to_roman("ویب سائٹ پر")
+        assert result.startswith("website")
+
+
+class TestSpaceRecovery:
+    """to_roman recovers an omitted space when the halves are known words.
+
+    Exercises the word_tokenize(recover_spaces=True) integration wired up
+    for issue #3, through the public to_roman API.
+    """
+
+    def test_recovers_lexicon_word_glued_to_auxiliary(self):
+        assert X.to_roman("کتابہے", recover_spaces=True) == "kitab hai"
+
+    def test_recovers_in_a_longer_sentence(self):
+        assert X.to_roman("یہ میری کتابہے", recover_spaces=True) == "yeh meri kitab hai"
 
 
 class TestToUrdu:

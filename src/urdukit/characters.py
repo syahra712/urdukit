@@ -64,13 +64,21 @@ URDU_LETTERS = frozenset(
 )
 
 #: Hamza carriers and related composite forms that occur in valid Urdu.
+#: Not alphabet letters in their own right, but real parts of real words.
 URDU_HAMZA_FORMS = frozenset(
     "ء"  # ء  HAMZA
     "ؤ"  # ؤ  WAW WITH HAMZA ABOVE
     "ئ"  # ئ  YEH WITH HAMZA ABOVE
     "ۂ"  # ۂ  HEH GOAL WITH HAMZA ABOVE
     "ۓ"  # ۓ  YEH BARREE WITH HAMZA ABOVE
+    "ۃ"  # ۃ  TEH MARBUTA GOAL -- Arabic borrowings: رحمۃ، سورۃ، صلوٰۃ
 )
+
+#: Honorific signs written above a name: ؐ (sallallahu alayhi wasallam),
+#: ؑ (alayhi salam), ؒ (rahmatullah alayh), ؓ (radi allahu anhu) and the
+#: two rarer marks beside them. Ubiquitous in religious text. They are
+#: combining marks, so they belong to the word they sit on.
+URDU_HONORIFICS = frozenset("\u0610\u0611\u0612\u0613\u0614\u0615")
 
 #: Aerab (harakat): vowel marks and other combining diacritics.
 #: These are combining characters -- they occupy no width of their own.

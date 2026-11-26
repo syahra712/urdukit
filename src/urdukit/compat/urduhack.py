@@ -39,6 +39,8 @@ rather than failing obscurely.
 
 from __future__ import annotations
 
+from typing import Any, Callable, NoReturn
+
 from .. import characters as _characters
 from .. import normalization as _normalization
 from .. import preprocessing as _preprocessing
@@ -192,8 +194,8 @@ _UNSUPPORTED = (
 )
 
 
-def _unsupported(name: str, alternative: str):
-    def raiser(*_args, **_kwargs):
+def _unsupported(name: str, alternative: str) -> Callable[..., NoReturn]:
+    def raiser(*_args: Any, **_kwargs: Any) -> NoReturn:
         raise NotImplementedError(
             _UNSUPPORTED.format(name=name, alternative=alternative)
         )

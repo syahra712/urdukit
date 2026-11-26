@@ -42,7 +42,7 @@ BLOCK = 512
 DEFAULT_CACHE = os.path.join(os.path.dirname(__file__), "..", ".dakshina_cache")
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from urdukit.transliteration import LEXICON, to_roman  # noqa: E402
+from urdukit.transliteration import LEXICON, LOANWORDS, to_roman  # noqa: E402
 
 
 def _range(start: int, length: int) -> bytes:
@@ -113,14 +113,21 @@ def load_lexicon(path: str) -> dict[str, dict[str, int]]:
 
 def evaluate(table: dict[str, dict[str, int]]) -> dict:
     strict = lenient = 0
+    # The same two counts over words neither table knows: what the rules
+    # alone achieve, with nothing a table entry could have memorized.
+    unseen = unseen_strict = unseen_lenient = 0
     misses: list[tuple[str, str, str]] = []
     for word, romanizations in table.items():
         produced = to_roman(word)
         best = max(romanizations.items(), key=lambda kv: kv[1])[0]
+        in_tables = word in LEXICON or word in LOANWORDS
+        unseen += not in_tables
         if produced == best:
             strict += 1
+            unseen_strict += not in_tables
         if produced in romanizations:
             lenient += 1
+            unseen_lenient += not in_tables
         elif len(misses) < 20:
             misses.append((word, best, produced))
     total = len(table)
@@ -130,7 +137,10 @@ def evaluate(table: dict[str, dict[str, int]]) -> dict:
         "lenient": lenient,
         "strict_pct": 100 * strict / total,
         "lenient_pct": 100 * lenient / total,
-        "overlap": sum(1 for w in table if w in LEXICON),
+        "overlap": total - unseen,
+        "unseen": unseen,
+        "unseen_strict_pct": 100 * unseen_strict / max(unseen, 1),
+        "unseen_lenient_pct": 100 * unseen_lenient / max(unseen, 1),
         "misses": misses,
     }
 
@@ -165,7 +175,7 @@ def main() -> int:
         f"{sum(len(v) for v in table.values()) / result['n']:>8.2f}"
     )
     print(
-        f"  already in urdukit lexicon   {result['overlap']:>8,}"
+        f"  already in urdukit tables    {result['overlap']:>8,}"
         "   (contamination check)"
     )
     print(f"  {'-' * 52}")
@@ -176,6 +186,14 @@ def main() -> int:
     print(
         f"  matches any attested         {result['lenient']:>8,}"
         f"   {result['lenient_pct']:5.2f}%"
+    )
+    print(f"  {'-' * 52}")
+    print(f"  rules only ({result['unseen']:,} words in neither table)")
+    print(
+        f"    matches most-attested                {result['unseen_strict_pct']:5.2f}%"
+    )
+    print(
+        f"    matches any attested                 {result['unseen_lenient_pct']:5.2f}%"
     )
     print(f"  {'-' * 52}")
     print()
