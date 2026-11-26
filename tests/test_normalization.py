@@ -147,6 +147,22 @@ class TestNormalize:
     def test_digits_untouched_by_default(self):
         assert N.normalize("2026 میں") == "2026 میں"
 
+    def test_arabic_indic_digits_fold_to_urdu_by_default(self):
+        """U+0660 block -> U+06F0 block, so the two spellings compare equal."""
+        assert N.normalize("٢٠٢٦ میں") == "۲۰۲۶ میں"
+        assert N.normalize("٠١٢٣٤٥٦٧٨٩") == "۰۱۲۳۴۵۶۷۸۹"
+
+    def test_arabic_indic_digits_kept_without_arabic_folding(self):
+        assert N.normalize("٢٠٢٦", arabic=False) == "٢٠٢٦"
+
+    def test_every_digit_system_agrees_under_each_target(self):
+        for target, expected in (("urdu", "۲۰۲۶"), ("ascii", "2026")):
+            for text in ("2026", "۲۰۲۶", "٢٠٢٦"):
+                assert N.normalize(text, digits=target) == expected
+
+    def test_arabic_indic_decimal_keeps_its_point(self):
+        assert N.normalize("٥۔٢") == "۵۔۲"
+
     def test_digits_folded_on_request(self):
         assert N.normalize("2026 میں", digits="urdu") == "۲۰۲۶ میں"
 

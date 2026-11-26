@@ -43,7 +43,8 @@ from urdukit import normalize, is_normalized
 normalize("مُحَمَّد علي")           # 'محمد علی'   — folds Arabic, strips aerab
 normalize("ﷲ")                     # 'اللہ'       — expands the ligature
 normalize("سلام ۔۔۔ دنیا")          # 'سلام۔ دنیا' — repairs punctuation
-normalize("2026 میں", digits="urdu") # '۲۰۲۶ میں'
+normalize("٢٠٢٦")                  # '۲۰۲۶'       — Arabic-Indic digits fold to Urdu ones
+normalize("2026 میں", digits="urdu") # '۲۰۲۶ میں'   — ASCII only on request
 
 is_normalized("محمد علی")           # True
 is_normalized("محمد علي")           # False
