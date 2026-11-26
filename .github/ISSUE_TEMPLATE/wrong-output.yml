@@ -1,0 +1,33 @@
+name: Urdu text handled wrongly
+description: urdukit gives the wrong result for some text. A failing example is a contribution on its own.
+labels: [bug]
+body:
+  - type: textarea
+    id: code
+    attributes:
+      label: What you ran
+      description: The smallest call that shows the problem.
+      render: python
+      placeholder: |
+        from urdukit import stem
+        stem("کہانیوں")
+    validations:
+      required: true
+  - type: input
+    id: got
+    attributes:
+      label: What you got
+    validations:
+      required: true
+  - type: input
+    id: expected
+    attributes:
+      label: What you expected, and why
+      description: For linguistic questions, say whether you are a native or fluent speaker.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: urdukit version
+      placeholder: python -c "import urdukit; print(urdukit.__version__)"

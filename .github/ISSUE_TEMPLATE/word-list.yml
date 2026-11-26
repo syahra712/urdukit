@@ -1,0 +1,23 @@
+name: Word list change
+description: Suggest a stopword, loanword, lexicon or protected-stem entry to add or remove.
+labels: [word-list]
+body:
+  - type: dropdown
+    id: list
+    attributes:
+      label: Which list
+      options: [STOPWORDS, LOANWORDS, LEXICON, stemmer PROTECTED, stemmer SUFFIXES]
+    validations:
+      required: true
+  - type: textarea
+    id: words
+    attributes:
+      label: Words, and add or remove
+      placeholder: "add: قبل (before), a postposition"
+    validations:
+      required: true
+  - type: textarea
+    id: reason
+    attributes:
+      label: Why
+      description: An example sentence helps. Do not paste text from datasets whose licence forbids redistribution.
