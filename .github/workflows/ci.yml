@@ -14,8 +14,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         include:
+          # Ubuntu 26.04 (ubuntu-latest) ships no Python 3.9 build; 24.04
+          # does, and 3.9 is still declared in requires-python.
+          - os: ubuntu-24.04
+            python-version: "3.9"
           - os: macos-latest
             python-version: "3.12"
           - os: windows-latest

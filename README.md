@@ -220,7 +220,7 @@ Python 3.9+. Nothing else.
 
 **If you speak Urdu, you can improve this library without reading a line of its code.**
 
-The transliteration lexicon in [`src/urdukit/transliteration.py`](src/urdukit/transliteration.py) is a plain dictionary of 143 Urdu→Roman pairs. Two things are needed:
+The transliteration lexicon in [`src/urdukit/transliteration.py`](https://github.com/syahra712/urdukit/blob/main/src/urdukit/transliteration.py) is a plain dictionary of 143 Urdu→Roman pairs. Two things are needed:
 
 1. **Corrections.** The entries were originally machine-generated. A spot-check of the first 118 found 1 wrong, and words added since haven't had a dedicated native-speaker pass either. If a romanization isn't how you'd actually type the word, that's a bug — please say so.
 2. **More words.** Common words are still missing — `بازار`, `کھیل`, `سفر`, `خط`, `چائے` and hundreds more. Each one added is a word the library stops guessing at.
