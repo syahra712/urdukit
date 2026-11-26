@@ -1,11 +1,28 @@
 #!/usr/bin/env python3
-"""Benchmark ``to_roman`` against the Dakshina Urdu romanization lexicon.
+"""Benchmark ``to_roman`` and ``to_urdu`` against the Dakshina Urdu data.
 
 Dakshina (Google Research) is the standard benchmark for South Asian
 romanization. Its Urdu test split has 2,500 native-script words held out by
 word *and* by lemma, so nothing in it overlaps the training split.
 
-    python scripts/benchmark_dakshina.py
+    python scripts/benchmark_dakshina.py                       # to_roman
+    python scripts/benchmark_dakshina.py --direction to_urdu   # Roman -> Urdu
+
+The reverse direction is scored two ways, both as exact match after
+``normalize``:
+
+- **lexicon pairs**: every attested (word, romanization) pair in the split;
+  feed the romanization to ``to_urdu`` and compare with the word. These are
+  mostly rare content words.
+- **sentences**: Dakshina's romanized Wikipedia sentences, typed by native
+  speakers, against their native-script originals. Only sentences whose two
+  sides have the same number of tokens are used, so tokens can be paired by
+  position; the script prints how many that is. These carry the everyday
+  function words (*main*, *he*, *ye*) that spelling variants affect most.
+  This data has only dev and test splits; tune on dev.
+
+Both are reported with and without :data:`urdukit.transliteration.ROMAN_VARIANTS`
+so the effect of that table is visible on its own.
 
 Licensing
 ---------
@@ -42,7 +59,13 @@ BLOCK = 512
 DEFAULT_CACHE = os.path.join(os.path.dirname(__file__), "..", ".dakshina_cache")
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from urdukit.transliteration import LEXICON, LOANWORDS, to_roman  # noqa: E402
+from urdukit import normalize  # noqa: E402
+from urdukit.transliteration import (  # noqa: E402
+    LEXICON,
+    LOANWORDS,
+    to_roman,
+    to_urdu,
+)
 
 
 def _range(start: int, length: int) -> bytes:
@@ -82,7 +105,10 @@ def download_urdu_lexicons(cache_dir: str) -> None:
         if parsed is None:
             break
         name, size = parsed
-        if "/ur/lexicons/" in name and name.endswith(".tsv"):
+        wanted = ("/ur/lexicons/" in name and name.endswith(".tsv")) or (
+            "/ur/romanized/ur.romanized.rejoined." in name and name.endswith(".txt")
+        )
+        if wanted:
             found.append((name, offset + BLOCK, size))
         offset += BLOCK + ((size + BLOCK - 1) // BLOCK) * BLOCK
         # Urdu sorts last; once past it there is nothing left to find.
@@ -145,6 +171,114 @@ def evaluate(table: dict[str, dict[str, int]]) -> dict:
     }
 
 
+def evaluate_reverse_lexicon(
+    table: dict[str, dict[str, int]], *, variants: bool
+) -> dict:
+    """Score ``to_urdu`` on every attested (word, romanization) pair."""
+    pairs = pairs_ok = weight = weight_ok = best_ok = 0
+    for word, romanizations in table.items():
+        target = normalize(word)
+        best = max(romanizations.items(), key=lambda kv: kv[1])[0]
+        for roman, count in romanizations.items():
+            hit = normalize(to_urdu(roman, variants=variants)) == target
+            pairs += 1
+            pairs_ok += hit
+            weight += count
+            weight_ok += hit * count
+            best_ok += hit and roman == best
+    return {
+        "words": len(table),
+        "pairs": pairs,
+        "pairs_pct": 100 * pairs_ok / pairs,
+        "weighted_pct": 100 * weight_ok / weight,
+        "best_pct": 100 * best_ok / len(table),
+    }
+
+
+_EDGE = ".,!?;:()[]{}\"'"
+_URDU_EDGE = _EDGE + "۔،؛؟"
+
+
+def _native_tokens(line: str) -> list[str]:
+    return [t.strip(_URDU_EDGE) for t in normalize(line).split() if t.strip(_URDU_EDGE)]
+
+
+def _roman_tokens(line: str) -> list[str]:
+    return [t.strip(_EDGE) for t in line.split() if t.strip(_EDGE)]
+
+
+def evaluate_reverse_sentences(
+    native_path: str, roman_path: str, *, variants: bool
+) -> dict:
+    """Score ``to_urdu`` token by token on position-alignable sentences."""
+    with open(native_path, encoding="utf-8") as handle:
+        native = handle.read().splitlines()
+    with open(roman_path, encoding="utf-8") as handle:
+        roman = handle.read().splitlines()
+    used = tokens = correct = 0
+    for native_line, roman_line in zip(native, roman):
+        targets = _native_tokens(native_line)
+        sources = _roman_tokens(roman_line)
+        if len(targets) != len(sources):
+            continue
+        used += 1
+        for source, target in zip(sources, targets):
+            tokens += 1
+            correct += normalize(to_urdu(source, variants=variants)) == target
+    return {
+        "sentences": len(native),
+        "used": used,
+        "tokens": tokens,
+        "pct": 100 * correct / max(tokens, 1),
+    }
+
+
+def report_to_urdu(args) -> int:
+    lexicon_path = os.path.join(args.cache_dir, f"ur.translit.sampled.{args.split}.tsv")
+    sentence_split = "dev" if args.split == "train" else args.split
+    native_path = os.path.join(
+        args.cache_dir, f"ur.romanized.rejoined.{sentence_split}.native.txt"
+    )
+    roman_path = os.path.join(
+        args.cache_dir, f"ur.romanized.rejoined.{sentence_split}.roman.txt"
+    )
+    if not all(os.path.exists(p) for p in (lexicon_path, native_path, roman_path)):
+        download_urdu_lexicons(args.cache_dir)
+    if not all(os.path.exists(p) for p in (lexicon_path, native_path, roman_path)):
+        print("could not obtain the Dakshina files", file=sys.stderr)
+        return 1
+
+    table = load_lexicon(lexicon_path)
+    lex = {v: evaluate_reverse_lexicon(table, variants=v) for v in (False, True)}
+    sent = {
+        v: evaluate_reverse_sentences(native_path, roman_path, variants=v)
+        for v in (False, True)
+    }
+
+    print()
+    print("  Dakshina ur / to_urdu (Roman -> Urdu), exact match after normalize")
+    print(f"  {'-' * 60}")
+    print(f"  {'':34}{'no variants':>13}{'variants':>13}")
+    print(f"  lexicon pairs, {args.split} split ({lex[True]['pairs']:,} pairs)")
+    for key, label in (
+        ("pairs_pct", "every attested pair"),
+        ("weighted_pct", "weighted by attestations"),
+        ("best_pct", "most-attested romanization"),
+    ):
+        print(f"    {label:32}{lex[False][key]:12.2f}%{lex[True][key]:12.2f}%")
+    s = sent[True]
+    print(
+        f"  sentences, {sentence_split} split ({s['used']:,} of "
+        f"{s['sentences']:,} alignable, {s['tokens']:,} tokens)"
+    )
+    print(f"    {'tokens correct':32}{sent[False]['pct']:12.2f}%{s['pct']:12.2f}%")
+    print(f"  {'-' * 60}")
+    print()
+    print("  Dakshina is CC BY-SA 4.0 (Roark et al., LREC 2020). Cite it if")
+    print("  you publish these numbers.")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cache-dir", default=DEFAULT_CACHE)
@@ -154,7 +288,15 @@ def main() -> int:
         choices=["train", "dev", "test"],
         help="Report on this split. Tune on train/dev; report on test only.",
     )
+    parser.add_argument(
+        "--direction",
+        default="to_roman",
+        choices=["to_roman", "to_urdu"],
+        help="to_roman: Urdu -> Roman (default). to_urdu: Roman -> Urdu.",
+    )
     args = parser.parse_args()
+    if args.direction == "to_urdu":
+        return report_to_urdu(args)
 
     path = os.path.join(args.cache_dir, f"ur.translit.sampled.{args.split}.tsv")
     if not os.path.exists(path):
