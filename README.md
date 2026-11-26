@@ -167,6 +167,7 @@ Every module that can be measured is measured against data annotated by people, 
 python scripts/benchmark_dakshina.py   # transliteration  (Dakshina, CC BY-SA 4.0)
 python scripts/benchmark_dakshina.py --direction to_urdu
 python scripts/benchmark_ud.py         # everything else  (UD Urdu-UDTB, CC BY-NC-SA 4.0)
+python scripts/benchmark_speed.py      # time per sentence (no data needed)
 ```
 
 Both scripts download their data at runtime; neither dataset's licence allows it to ship inside an MIT package. Rules are tuned on the train splits, and the figures below are the test splits, run once.
@@ -181,6 +182,8 @@ UD Urdu-UDTB, test split (535 sentences, 1,944 distinct content-word forms for s
 | &nbsp;&nbsp;stemmer in 0.1.0, for comparison | 73.5% | 58.8% | 65.3% |
 | &nbsp;&nbsp;no stemming, for scale | – | 0.0% | 0.0% |
 | Stopwords vs. closed-class POS | 85.8% | 91.3% | 88.5% |
+
+**Speed.** `python scripts/benchmark_speed.py` times each function with `timeit` on a 66-character, 14-word sentence. On a 2017 dual-core laptop (Intel i5-7267U, Python 3.12), per sentence, varying about ±20% between runs: `normalize` ~80 µs, `word_tokenize` ~20 µs, `sentence_tokenize` ~5 µs, `to_roman` ~200–250 µs, `to_urdu` ~30–40 µs, and `stem_tokens` ~350 µs. That is roughly 4,000 sentences a second through `to_roman` on one core, with no warm-up and no model to load.
 
 UD Urdu-UDTB is by Bhat et al. (2017), *The Hindi/Urdu Treebank Project*; cite it if you publish these numbers.
 
