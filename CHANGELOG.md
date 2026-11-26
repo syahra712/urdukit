@@ -45,14 +45,18 @@ versions follow [Semantic Versioning](https://semver.org/).
 - The benchmark script reports a rules-only figure, over words in neither
   lookup table.
 - `scripts/benchmark_ud.py` scores tokenization, sentence splitting,
-  stemming and stopwords against the Urdu UD treebank.
+  stemming and stopwords against the Urdu UD treebank, and
+  `scripts/compare_ud.py` runs Stanza and urduhack through the same scoring.
 
 ### Changed
 
 - **The stemmer was rewritten** as three ordered steps -- a fused future
   auxiliary (`کریںگے`), one inflectional ending, a hanging hamza glide
   (`ہوئے` -> `ہو`) -- with a hand-written `PROTECTED` list (`پانی`, `دنیا`,
-  `زندگی`, `کراچی`). Against UD Urdu-UDTB lemmas: F1 65.3% -> 73.7% on the test split.
+  `زندگی`, `کراچی`) and an `IRREGULAR` table for the five commonest
+  irregular verbs (`کیا` with `کرنا`, `گیا` with `جانا`, and `دینا`,
+  `لینا`, `آنا`). Against UD Urdu-UDTB lemmas: F1 65.3% -> 81.4% on the
+  test split (73.7% before the irregular table).
   Stems change, so rebuild any index built with 0.1.0.
   Dropped the derivational `انہ`, `دار` and `یات`, which measured worse than nothing.
 

@@ -125,7 +125,10 @@ def _prf(tp: int, fp: int, fn: int) -> tuple[float, float, float]:
     return 100 * p, 100 * r, 100 * f
 
 
-def eval_tokenization(sentences: list[Sentence]) -> tuple[float, float, float]:
+def eval_tokenization(
+    sentences: list[Sentence],
+    tokenize: Callable[[str], list[str]] = word_tokenize,
+) -> tuple[float, float, float]:
     tp = fp = fn = 0
     for text, tokens in sentences:
         gold = [
@@ -133,7 +136,11 @@ def eval_tokenization(sentences: list[Sentence]) -> tuple[float, float, float]:
             for form, _, _ in tokens
             for part in normalize(form.replace("_", " ")).split()
         ]
-        pred = word_tokenize(normalize(text.replace("_", " ")))
+        pred = [
+            part
+            for token in tokenize(normalize(text.replace("_", " ")))
+            for part in normalize(token).split()
+        ]
         g, p = collections.Counter(gold), collections.Counter(pred)
         match = sum((g & p).values())
         tp += match
@@ -142,7 +149,10 @@ def eval_tokenization(sentences: list[Sentence]) -> tuple[float, float, float]:
     return _prf(tp, fp, fn)
 
 
-def eval_sentences(sentences: list[Sentence]) -> tuple[float, float, float]:
+def eval_sentences(
+    sentences: list[Sentence],
+    split: Callable[[str], list[str]] = sentence_tokenize,
+) -> tuple[float, float, float]:
     texts = [normalize(text) for text, _ in sentences]
     gold, offset = set(), 0
     for text in texts:
@@ -151,7 +161,8 @@ def eval_sentences(sentences: list[Sentence]) -> tuple[float, float, float]:
         offset += 1  # the joining space
     joined = " ".join(texts)
     pred, cursor = set(), 0
-    for sentence in sentence_tokenize(joined):
+    for sentence in split(joined):
+        sentence = sentence.strip()
         start = joined.find(sentence, cursor)
         if start < 0:
             continue
@@ -224,13 +235,14 @@ def eval_stemming(
 
 def eval_stopwords(
     sentences: list[Sentence],
+    is_stop: Callable[[str], bool] = is_stopword,
 ) -> tuple[float, float, float, list[tuple[str, int]]]:
     tp = fp = fn = 0
     missing: collections.Counter[str] = collections.Counter()
     for _, tokens in sentences:
         for form, _, upos in tokens:
             word = normalize(form)
-            flagged, closed = is_stopword(word), upos in CLOSED_POS
+            flagged, closed = is_stop(word), upos in CLOSED_POS
             tp += flagged and closed
             fp += flagged and not closed
             fn += closed and not flagged

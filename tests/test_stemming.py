@@ -88,7 +88,8 @@ class TestKnownLimitations:
         assert St.stem("پاکستان") == "پاکستان"
 
     def test_irregular_verbs_are_not_lemmatized(self):
-        """گیا (went) will not become جانا (to go). This is a stemmer."""
+        """گیا (went) shares a stem with جانا (to go) but does not become
+        it. This is a stemmer."""
         assert St.stem("گیا") != "جانا"
 
     def test_broken_plurals_are_not_recovered(self):
@@ -139,6 +140,42 @@ class TestProtected:
         from urdukit import normalize
 
         assert all(normalize(w) == w for w in St.PROTECTED)
+
+
+class TestIrregularVerbs:
+    """Forms no suffix rule can reach, from a small hand-written table."""
+
+    @pytest.mark.parametrize(
+        "irregular,regular",
+        [
+            ("کیا", "کرنا"),
+            ("کئے", "کرتا"),
+            ("گیا", "جانا"),
+            ("گئیں", "جاتی"),
+            ("دیا", "دینا"),
+            ("دئیے", "دیتے"),
+            ("لیا", "لینا"),
+            ("آیا", "آنا"),
+            ("آئی", "آتی"),
+        ],
+    )
+    def test_meets_its_regular_forms(self, irregular, regular):
+        assert St.stem(irregular) == St.stem(regular)
+
+    def test_fused_future(self):
+        assert St.stem("آئےگا") == St.stem("آنا")
+
+    @pytest.mark.parametrize("word", ["کی", "دی", "لی"])
+    def test_ambiguous_short_forms_are_left_alone(self, word):
+        """کی is the possessive "of" far more often than "did"."""
+        assert St.stem(word) == word
+
+    def test_entries_are_normalized(self):
+        from urdukit.normalization import is_normalized
+
+        assert all(
+            is_normalized(k) and is_normalized(v) for k, v in St.IRREGULAR.items()
+        )
 
 
 class TestStemTokens:
