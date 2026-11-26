@@ -253,6 +253,68 @@ class TestToUrdu:
         assert X.to_urdu("zzz")  # produces something rather than crashing
 
 
+class TestRomanVariants:
+    def test_every_variant_targets_a_known_word(self):
+        reverse = X._REVERSE_LEXICON
+        missing = {k: v for k, v in X.ROMAN_VARIANTS.items() if v not in reverse}
+        assert not missing
+
+    def test_no_variant_shadows_a_canonical_spelling(self):
+        """The exact lexicon is checked first, so such an entry would be dead."""
+        shadowed = set(X.ROMAN_VARIANTS) & set(X._REVERSE_LEXICON)
+        assert not shadowed
+
+    def test_keys_are_lowercase(self):
+        """to_urdu lowercases before lookup; an uppercase key never matches."""
+        assert all(k == k.lower() for k in X.ROMAN_VARIANTS)
+
+    @pytest.mark.parametrize(
+        "roman",
+        [
+            "main pakistan se hoon",
+            "mai pakistan sy hu",
+            "me pakistan sey hun",
+            "Main Pakistan se hoon",
+        ],
+    )
+    def test_sentence_spellings_converge(self, roman):
+        assert X.to_urdu(roman) == "میں پاکستان سے ہوں"
+
+    @pytest.mark.parametrize(
+        ("variant", "urdu"),
+        [
+            ("nahin", "نہیں"),
+            ("nhi", "نہیں"),
+            ("he", "ہے"),
+            ("h", "ہے"),
+            ("hy", "ہے"),
+            ("ky", "کے"),
+            ("k", "کے"),
+            ("wo", "وہ"),
+            ("ye", "یہ"),
+            ("kia", "کیا"),
+            ("bahut", "بہت"),
+            ("bhot", "بہت"),
+            ("or", "اور"),
+            ("hen", "ہیں"),
+        ],
+    )
+    def test_common_variants(self, variant, urdu):
+        assert X.to_urdu(variant) == urdu
+
+    def test_punctuation_is_kept(self):
+        assert X.to_urdu("wo nahin aya, kia?") == "وہ نہیں ایا، کیا؟"
+
+    def test_can_be_disabled(self):
+        assert X.to_urdu("main", variants=False) == "مےن"
+        assert X.to_urdu("mein", variants=False) == "میں"
+
+    def test_dev_split_rejects_stay_out(self):
+        """Removed after Dakshina dev showed them wrong more often than right."""
+        for spelling in ("nai", "sb", "salaam"):
+            assert spelling not in X.ROMAN_VARIANTS
+
+
 class TestMeasuredAccuracy:
     """Pins the published numbers so a regression is visible, not silent."""
 

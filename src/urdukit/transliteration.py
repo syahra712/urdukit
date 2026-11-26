@@ -68,7 +68,14 @@ from .normalization import normalize, remove_diacritics
 from .stopwords import STOPWORDS
 from .tokenization import word_tokenize
 
-__all__ = ["to_roman", "to_urdu", "LEXICON", "LOANWORDS", "PHRASE_LOANWORDS"]
+__all__ = [
+    "to_roman",
+    "to_urdu",
+    "LEXICON",
+    "LOANWORDS",
+    "PHRASE_LOANWORDS",
+    "ROMAN_VARIANTS",
+]
 
 #: Aspirated consonants: a base consonant followed by ھ (U+06BE HEH
 #: DOACHASHMEE). These must be matched before single characters, or ``کھ``
@@ -500,6 +507,178 @@ for _table in (LEXICON, LOANWORDS, PHRASE_LOANWORDS):
     for _urdu, _roman in _table.items():
         _REVERSE_LEXICON.setdefault(_roman, _urdu)
 
+#: Common alternative Roman spellings, mapped onto the canonical romanization
+#: in :data:`LEXICON` that :func:`to_urdu` already knows.
+#:
+#: Roman Urdu has no standard orthography, so the same word arrives spelled
+#: many ways: میں as ``main``, ``mein``, ``mai``, ``me``; ہوں as ``hoon``,
+#: ``hun``, ``hu``; نہیں as ``nahi``, ``nahin``, ``nhi``. Without this table
+#: every spelling but the one in :data:`LEXICON` falls through to the
+#: letter-by-letter rules (``main`` -> مےن).
+#:
+#: Hand-written from everyday texting conventions -- deliberately *not*
+#: derived from Dakshina, which is CC BY-SA and so cannot be copied into
+#: this MIT package -- and **not yet checked by a native speaker**.
+#:
+#: Some spellings are genuinely ambiguous and were resolved toward the
+#: commoner reading: ``k`` is usually کے but can be کہ; ``h`` is usually
+#: ہے in chat but is also the letter H; ``me`` and ``or`` are English words
+#: too. Spellings ambiguous enough that either reading is common are left
+#: out: ``kaha`` (said/where), ``kam``/``kaam``, ``hue``. Three entries were
+#: removed after scoring on the Dakshina *dev* split showed them wrong more
+#: often than right: ``nai`` (usually نئی, new), ``sb`` (usually صاحب) and
+#: ``salaam`` (usually السلام).
+ROMAN_VARIANTS: dict[str, str] = {
+    # pronouns / question words
+    "main": "mein",
+    "mai": "mein",
+    "mei": "mein",
+    "me": "mein",
+    "mn": "mein",
+    "men": "mein",
+    "ham": "hum",
+    "tm": "tum",
+    "ap": "aap",
+    "wo": "woh",
+    "vo": "woh",
+    "voh": "woh",
+    "ye": "yeh",
+    "yah": "yeh",
+    "yh": "yeh",
+    "kia": "kya",
+    "kiya": "kya",
+    "kyu": "kyun",
+    "kyon": "kyun",
+    "kiyon": "kyun",
+    "kiun": "kyun",
+    "kon": "kaun",
+    "kaon": "kaun",
+    "kahaan": "kahan",
+    "kaise": "kese",
+    "kesy": "kese",
+    "kaisay": "kese",
+    "kaisy": "kese",
+    "kitnaa": "kitna",
+    "hamara": "humara",
+    "hmara": "humara",
+    "tmhara": "tumhara",
+    # postpositions / conjunctions / particles
+    "ky": "ke",
+    "kay": "ke",
+    "k": "ke",
+    "sy": "se",
+    "sey": "se",
+    "say": "se",
+    "per": "par",
+    "tk": "tak",
+    "or": "aur",
+    "aor": "aur",
+    "lakin": "lekin",
+    "laikin": "lekin",
+    "mgr": "magar",
+    "agr": "agar",
+    "toh": "to",
+    "tou": "to",
+    "bhee": "bhi",
+    "nahin": "nahi",
+    "nhi": "nahi",
+    "nahee": "nahi",
+    "saath": "sath",
+    "pehly": "pehle",
+    "pehlay": "pehle",
+    "pahle": "pehle",
+    "liay": "liye",
+    "liyay": "liye",
+    # verbs / auxiliaries
+    "he": "hai",
+    "h": "hai",
+    "hy": "hai",
+    "hae": "hai",
+    "hen": "hain",
+    "hein": "hain",
+    "hoon": "hun",
+    "hon": "hun",
+    "hu": "hun",
+    "hoo": "hun",
+    "thay": "the",
+    "thy": "the",
+    "huwa": "hua",
+    "howa": "hua",
+    "hoi": "hui",
+    "gae": "gaye",
+    "gayee": "gayi",
+    "rha": "raha",
+    "rhi": "rahi",
+    "rhe": "rahe",
+    "rahay": "rahe",
+    "skta": "sakta",
+    "krna": "karna",
+    "krta": "karta",
+    "krti": "karti",
+    "krte": "karte",
+    "kartay": "karte",
+    "chahye": "chahiye",
+    "chahiay": "chahiye",
+    "chaiye": "chahiye",
+    "chahie": "chahiye",
+    "jaana": "jana",
+    # nouns / adjectives
+    "achha": "acha",
+    "accha": "acha",
+    "achaa": "acha",
+    "bahut": "bohat",
+    "bohot": "bohat",
+    "bahot": "bohat",
+    "bhot": "bohat",
+    "bht": "bohat",
+    "kuchh": "kuch",
+    "kch": "kuch",
+    "zyda": "zyada",
+    "ziada": "zyada",
+    "ziyada": "zyada",
+    "zayada": "zyada",
+    "zyaada": "zyada",
+    "shukria": "shukriya",
+    "shukrya": "shukriya",
+    "zindgi": "zindagi",
+    "muhabbat": "mohabbat",
+    "mohabat": "mohabbat",
+    "muhabat": "mohabbat",
+    "ladka": "larka",
+    "ladki": "larki",
+    "admi": "aadmi",
+    "orat": "aurat",
+    "bachcha": "bacha",
+    "bachha": "bacha",
+    "bache": "bachay",
+    "bachy": "bachay",
+    "bahan": "behan",
+    "behn": "behan",
+    "paani": "pani",
+    "khaana": "khana",
+    "gari": "gaari",
+    "gaadi": "gaari",
+    "gadi": "gaari",
+    "sadak": "sarak",
+    "jaga": "jagah",
+    "chiz": "cheez",
+    "asman": "aasman",
+    "aasmaan": "aasman",
+    "zamin": "zameen",
+    "mosam": "mausam",
+    "mousam": "mausam",
+    "dunya": "duniya",
+    "dunia": "duniya",
+    "sheher": "shehar",
+    "shahar": "shehar",
+    "wakt": "waqt",
+    "waqat": "waqt",
+    "bada": "bara",
+    "chhota": "chota",
+    "nya": "naya",
+    "ilaaqa": "ilaqa",
+}
+
 #: Vocabulary passed to ``word_tokenize(..., recover_spaces=True)``. Wider
 #: than :data:`urdukit.stopwords.STOPWORDS` alone, since a content word from
 #: LEXICON or LOANWORDS on either side of an omitted space is just as
@@ -755,7 +934,7 @@ _LATIN_TO_URDU_PUNCTUATION = str.maketrans({".": "۔", ",": "،", ";": "؛", "?"
 _EDGE_PUNCTUATION = ".,!?;:()[]{}\"'"
 
 
-def to_urdu(text: str) -> str:
+def to_urdu(text: str, *, variants: bool = True) -> str:
     """Transliterate Roman Urdu into Urdu script. Best-effort.
 
         >>> to_urdu("mein pakistan se hun")
@@ -765,8 +944,17 @@ def to_urdu(text: str) -> str:
     with no way to choose without knowing the word. Known words are exact;
     everything else is a guess. Always check the output.
 
+    Common alternative spellings of known words resolve to the same word
+    (see :data:`ROMAN_VARIANTS`):
+
+        >>> to_urdu("mai pakistan sy hu")
+        'میں پاکستان سے ہوں'
+
     Args:
         text: Roman Urdu text.
+        variants: Look up :data:`ROMAN_VARIANTS` after the exact lexicon.
+            ``False`` gives the pre-0.2 behaviour, where only the one
+            spelling stored in :data:`LEXICON` is recognised.
 
     Returns:
         Urdu script, with sentence punctuation converted (``?`` -> ``؟``).
@@ -787,6 +975,10 @@ def to_urdu(text: str) -> str:
 
         if lowered in _REVERSE_LEXICON:
             pieces.append(leading + _REVERSE_LEXICON[lowered] + trailing)
+            continue
+        if variants and lowered in ROMAN_VARIANTS:
+            canonical = _REVERSE_LEXICON[ROMAN_VARIANTS[lowered]]
+            pieces.append(leading + canonical + trailing)
             continue
 
         out: list[str] = []
