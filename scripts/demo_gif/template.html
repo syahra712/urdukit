@@ -1,0 +1,28 @@
+<!doctype html><html dir="ltr"><head><meta charset="utf-8"><style>
+@font-face{font-family:UrduFace;src:local('Noto Nastaliq Urdu'),local('NotoNastaliqUrdu');unicode-range:U+0600-06FF,U+FB50-FDFF,U+FE70-FEFF}
+html,body{margin:0;background:#fff}
+.win{width:960px;height:440px;margin:0;background:#0d1117;color:#e6edf3;font:22px/1.75 UrduFace,Menlo,monospace;box-sizing:border-box;overflow:hidden}
+.bar{height:36px;background:#161b22;display:flex;align-items:center;padding:0 14px;gap:8px}
+.dot{width:12px;height:12px;border-radius:50%}
+.bar span{color:#8b949e;font-size:15px;margin-left:12px}
+.body{padding:18px 26px}
+.title{color:#7ee787;font-weight:bold;margin-bottom:10px}
+.prompt{color:#8b949e}
+.code{color:#e6edf3}
+.out{color:#79c0ff;margin-bottom:8px}
+.step{color:#8b949e;font-size:16px;float:right}
+</style></head><body><div class="win"><div class="bar"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#ffbd2e"></div><div class="dot" style="background:#27c93f"></div><span id="hdr"></span></div><div class="body" id="b"></div></div>
+<script>
+const D = __DATA__;
+const [si, n, showOut] = JSON.parse(decodeURIComponent(location.hash.slice(1)));
+const st = D.steps[si];
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const fix = s => esc(s).replace(/(["'])([^"']*?)\1/g, (m, q, body) => /[\u0600-\u06FF]/.test(body) ? `${q}<bdi dir="rtl">${body}</bdi>${q}` : m);
+document.getElementById('hdr').textContent = `python  ·  urdukit ${D.version}  ·  pip install git+https://github.com/syahra712/urdukit`;
+let h = `<div class="title">${si+1}. ${esc(st.title)}<span class="step">${si+1} / ${D.steps.length}</span></div>`;
+st.lines.slice(0, n).forEach((l, i) => {
+  h += `<div><span class="prompt">&gt;&gt;&gt; </span><span class="code">${fix(l.code)}</span></div>`;
+  if (i < n - 1 || showOut) h += `<div class="out">${fix(l.out)}</div>`;
+});
+document.getElementById('b').innerHTML = h;
+</script></body></html>
