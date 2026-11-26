@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use urdukit in research, please cite it as below."
+title: "urdukit: a dependency-free NLP toolkit for Urdu"
+type: software
+authors:
+  - family-names: Raza
+    given-names: Syed Ahnaf
+version: 0.2.0
+date-released: 2026-11-26
+license: MIT
+repository-code: "https://github.com/syahra712/urdukit"
+keywords: [urdu, nlp, tokenization, normalization, transliteration, roman-urdu, low-resource]

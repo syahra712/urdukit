@@ -55,6 +55,9 @@ path = "src/urdukit/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["src/urdukit"]
 
+[tool.hatch.build.targets.sdist]
+exclude = [".github", ".gitignore"]
+
 [tool.pytest.ini_options]
 # src is collected too so the examples in docstrings are run as tests: a
 # documented example that has stopped being true is a bug.

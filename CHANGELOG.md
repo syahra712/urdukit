@@ -3,7 +3,7 @@
 Notable changes to urdukit. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/).
 
-## [0.2.0] - unreleased
+## [0.2.0] - 2026-11-26
 
 ### Fixed
 
