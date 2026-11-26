@@ -19,6 +19,10 @@ urdukit.to_urdu("mai pakistan sy hu")     # 'میں پاکستان سے ہوں'
 
 No TensorFlow. No model downloads. No dependencies at all — just the standard library.
 
+![urdukit in a Python session: normalizing look-alike Arabic and Urdu letters, tokenizing Urdu with English words in it, and transliterating Urdu to Roman Urdu and back](docs/urdukit-demo.gif)
+
+<sub>Every output in this recording comes from the library itself; `python scripts/demo_gif/make_gif.py` rebuilds it.</sub>
+
 ## Why this exists
 
 Urdu is spoken by over 230 million people. Its de-facto Python library, [`urduhack`](https://github.com/urduhack/urduhack), still serves **40,000–118,000 downloads a month** — and its last release was **July 2020**.
