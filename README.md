@@ -1,5 +1,7 @@
 # urdukit
 
+[![CI](https://github.com/syahra712/urdukit/actions/workflows/ci.yml/badge.svg)](https://github.com/syahra712/urdukit/actions/workflows/ci.yml)
+
 A modern, dependency-free NLP toolkit for Urdu — normalization, tokenization, stopwords, stemming and Roman Urdu transliteration.
 
 ```bash
@@ -12,6 +14,7 @@ import urdukit
 urdukit.normalize("مُحَمَّد علي")        # 'محمد علی'
 urdukit.sentence_tokenize("سلام۔ دنیا۔")  # ['سلام۔', 'دنیا۔']
 urdukit.to_roman("میں پاکستان سے ہوں۔")   # 'mein pakistan se hun.'
+urdukit.to_urdu("mai pakistan sy hu")     # 'میں پاکستان سے ہوں'
 ```
 
 No TensorFlow. No model downloads. No dependencies at all — just the standard library.
@@ -170,7 +173,7 @@ python scripts/benchmark_ud.py         # everything else  (UD Urdu-UDTB, CC BY-N
 python scripts/benchmark_speed.py      # time per sentence (no data needed)
 ```
 
-Both scripts download their data at runtime; neither dataset's licence allows it to ship inside an MIT package. Rules are tuned on the train splits, and the figures below are the test splits, run once.
+The Dakshina and UD scripts download their data at runtime, because neither dataset's licence allows it to ship inside an MIT package. The speed script needs no data. Rules are tuned on the train splits, and the figures below are the test splits, run once.
 
 UD Urdu-UDTB, test split (535 sentences, 1,944 distinct content-word forms for stemming):
 
@@ -237,6 +240,8 @@ Everyday Roman Urdu — how people actually text — not scholarly transliterati
 
 An issue saying "`X` should be `Y`" is a complete contribution. You don't need to open a pull request, and you don't need to know Python.
 
+The same goes for `ROMAN_VARIANTS`, the table of 144 Roman spellings (`mai`, `hu`, `sy`) that `to_urdu` resolves. No native speaker has checked it yet, so a wrong or missing spelling is a useful report.
+
 Also welcome: stopwords that are missing or shouldn't be there, stemmer suffixes that over- or under-strip, and any Urdu text this library handles wrongly.
 
 ```bash
@@ -250,7 +255,7 @@ pytest
 
 Stated up front rather than discovered later:
 
-- **Transliteration of unknown words is 16.0%/34.8% accurate** (most-attested / any-attested, Dakshina test split). See above.
+- **Transliteration of unknown words is 15.2%/34.1% accurate** (most-attested / any-attested, rules alone, on the Dakshina test words in neither lookup table). With the tables, the headline is 16.0%/34.8%. See above.
 - **`to_urdu` is weaker still**: 46.1% of tokens in real romanized sentences come out exactly right, and 9.5% of rare words. Roman `s`/`k`/`z` map to several Urdu letters each, and only words in the lookup tables are resolved reliably.
 - **The tokenizer does not recover omitted spaces by default.** `کتابہے` stays one token instead of becoming `کتاب` + `ہے`. `word_tokenize(..., recover_spaces=True)` opts in to lexicon-bounded recovery — it only splits where a vocabulary you supply resolves the split unambiguously — and `to_roman(..., recover_spaces=True)` does the same against its own tables. It is off by default in both because it is wrong often enough to matter: measured on 24,922 real single words from Dakshina, it split 1.2% of them (`کاجو`, cashew, became `کا` + `جو`). General word segmentation is still unsolved; see [issue #3](https://github.com/syahra712/urdukit/issues/3).
 - **Stemming is not lemmatization.** `گیا` will not become `جانا`, and Arabic broken plurals (`کتاب` → `کتب`) need a dictionary. Words whose last letters look like an ending get over-stemmed (`ہفتے`, week, → `ہف`); a short hand-written `PROTECTED` list covers the commonest (`پانی`, `دنیا`, `کراچی`). Measured against the lemmas of the Urdu UD treebank the stemmer reaches 73.7% F1 on the test split — see [Benchmarks](#benchmarks).
