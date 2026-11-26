@@ -21,6 +21,7 @@ import unicodedata
 from typing import Any, Literal
 
 from .characters import (
+    ARABIC_DIGITS_TO_URDU,
     ARABIC_TO_URDU,
     INVISIBLE_CHARACTERS,
     LIGATURES,
@@ -52,7 +53,7 @@ _TATWEEL = "ـ"
 #: exactly one space after.
 _CLINGING_PUNCTUATION = "۔،؛؟!:"
 
-_ARABIC_FOLD_TABLE = str.maketrans(dict(ARABIC_TO_URDU))
+_ARABIC_FOLD_TABLE = str.maketrans({**ARABIC_TO_URDU, **ARABIC_DIGITS_TO_URDU})
 _DIACRITIC_TABLE = str.maketrans({c: None for c in URDU_DIACRITICS})
 _INVISIBLE_TABLE = str.maketrans({c: None for c in INVISIBLE_CHARACTERS})
 _INVISIBLE_KEEP_ZWNJ_TABLE = str.maketrans(
@@ -112,6 +113,13 @@ def fold_arabic(text: str) -> str:
     Urdu UD treebank ``مےں`` outnumbers ``میں``.
 
         >>> fold_arabic("مےں") == "میں"
+        True
+
+    Arabic-Indic digits are Arabic codepoints too, and fold onto the
+    Extended Arabic-Indic digits Urdu uses. ASCII digits are left alone;
+    choosing between ``۲۰۲۶`` and ``2026`` is :func:`normalize_digits`'s job.
+
+        >>> fold_arabic("٢٠٢٦") == "۲۰۲۶"
         True
     """
     return text.translate(_ARABIC_FOLD_TABLE).replace("ےں", "یں")
@@ -238,10 +246,14 @@ def normalize(
     Args:
         text: Input text.
         unicode_form: Unicode normalization form; ``None`` to skip.
-        arabic: Fold Arabic codepoints onto Urdu ones.
+        arabic: Fold Arabic codepoints onto Urdu ones, including
+            Arabic-Indic digits (``٢`` -> ``۲``); see :func:`fold_arabic`.
         diacritics: Strip aerab.
         ligatures: Expand presentation-form ligatures.
-        digits: ``"urdu"``, ``"ascii"``, or ``None`` to leave digits alone.
+        digits: ``"urdu"`` or ``"ascii"`` to put every digit in one system,
+            or ``None`` (default) to leave the choice between Urdu and ASCII
+            digits alone. Arabic-Indic digits are folded to Urdu ones either
+            way unless ``arabic=False``.
         punctuation: Repair punctuation spacing.
         whitespace: Collapse whitespace runs and trim.
         preserve_zwnj: Keep U+200C (see :func:`remove_invisible`).

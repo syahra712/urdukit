@@ -225,6 +225,14 @@ TO_URDU_DIGITS = MappingProxyType(
     }
 )
 
+#: Arabic-Indic digits (U+0660-U+0669) onto the Extended Arabic-Indic digits
+#: Urdu uses (U+06F0-U+06F9). Same values, different codepoints -- and for
+#: 4, 5, 6 and 7 visibly different glyphs -- so ``"٢٠٢٦" != "۲۰۲۶"`` until
+#: folded. Kept apart from :data:`ARABIC_TO_URDU`, which holds letters only.
+ARABIC_DIGITS_TO_URDU = MappingProxyType(
+    {a: u for a, u in zip(_ARABIC_DIGIT_LIST, _URDU_DIGIT_LIST)}
+)
+
 TO_ASCII_DIGITS = MappingProxyType(
     {
         **{u: a for u, a in zip(_URDU_DIGIT_LIST, _ASCII_DIGIT_LIST)},

@@ -43,7 +43,8 @@ from urdukit import normalize, is_normalized
 normalize("مُحَمَّد علي")           # 'محمد علی'   — folds Arabic, strips aerab
 normalize("ﷲ")                     # 'اللہ'       — expands the ligature
 normalize("سلام ۔۔۔ دنیا")          # 'سلام۔ دنیا' — repairs punctuation
-normalize("2026 میں", digits="urdu") # '۲۰۲۶ میں'
+normalize("٢٠٢٦")                  # '۲۰۲۶'       — Arabic-Indic digits fold to Urdu ones
+normalize("2026 میں", digits="urdu") # '۲۰۲۶ میں'   — ASCII only on request
 
 is_normalized("محمد علی")           # True
 is_normalized("محمد علي")           # False
@@ -124,6 +125,28 @@ The fallback aims for a *pronounceable approximation*, not a correct answer. The
 
 This is why the lexicon matters more than the rules: adding a correct word takes it from a ~35% guess to a reliable answer. It is also why the list needs more eyes than one author's.
 
+**Roman → Urdu, and spelling variants.** Roman Urdu has no standard spelling: the same میں arrives as `main`, `mein`, `mai` or `me`, and نہیں as `nahi`, `nahin` or `nhi`. `to_urdu` checks a hand-written `ROMAN_VARIANTS` table of 144 such spellings before falling back to letter rules:
+
+```python
+to_urdu("mai pakistan sy hu")                   # 'میں پاکستان سے ہوں'
+to_urdu("mai pakistan sy hu", variants=False)   # 'مے پاکستان سی ہو'  (old behaviour)
+```
+
+Measured on Dakshina's test split, exact match after `normalize`, with the variant table off and on (tuned on dev only):
+
+| `to_urdu` | no variants | with variants |
+|---|---:|---:|
+| Tokens in real romanized sentences (3,898 alignable sentences, 58,332 tokens) | 42.2% | **46.1%** |
+| Lexicon pairs (10,517 attested word/romanization pairs) | 9.4% | 9.5% |
+
+The sentences are Wikipedia text that native speakers typed out in Roman script, paired with the originals token by token (only sentences whose two sides have the same token count, 80% of them). The variant table helps there because it covers the function words — *main*, *he*, *ye*, *wo*, *kiya* — that make up much of running text. It does almost nothing for the lexicon pairs, which are mostly rare content words the tables don't know. Both figures are low: `s` can be س, ص or ث and `k` can be ک or ق, so an unknown word is a guess. Treat `to_urdu` output as a suggestion.
+
+```bash
+python scripts/benchmark_dakshina.py --direction to_urdu
+```
+
+> ⚠️ **`ROMAN_VARIANTS` is unverified.** It was written from common texting conventions, not checked by a native speaker, and deliberately not extracted from Dakshina (whose CC BY-SA licence would not allow it inside this MIT package). A few entries are ambiguous by nature — `k` is usually کے but can be کہ — and three (`nai`, `sb`, `salaam`) were removed when the dev split showed them wrong more often than right. Wikipedia text has few chat abbreviations, so shorthand like `sy` or `hu` is barely tested by this benchmark.
+
 ### Cleaning text for a model
 
 ```python
@@ -142,7 +165,9 @@ Every module that can be measured is measured against data annotated by people, 
 
 ```bash
 python scripts/benchmark_dakshina.py   # transliteration  (Dakshina, CC BY-SA 4.0)
+python scripts/benchmark_dakshina.py --direction to_urdu
 python scripts/benchmark_ud.py         # everything else  (UD Urdu-UDTB, CC BY-NC-SA 4.0)
+python scripts/benchmark_speed.py      # time per sentence (no data needed)
 ```
 
 Both scripts download their data at runtime; neither dataset's licence allows it to ship inside an MIT package. Rules are tuned on the train splits, and the figures below are the test splits, run once.
@@ -157,6 +182,8 @@ UD Urdu-UDTB, test split (535 sentences, 1,944 distinct content-word forms for s
 | &nbsp;&nbsp;stemmer in 0.1.0, for comparison | 73.5% | 58.8% | 65.3% |
 | &nbsp;&nbsp;no stemming, for scale | – | 0.0% | 0.0% |
 | Stopwords vs. closed-class POS | 85.8% | 91.3% | 88.5% |
+
+**Speed.** `python scripts/benchmark_speed.py` times each function with `timeit` on a 66-character, 14-word sentence. On a 2017 dual-core laptop (Intel i5-7267U, Python 3.12), per sentence, varying about ±20% between runs: `normalize` ~80 µs, `word_tokenize` ~20 µs, `sentence_tokenize` ~5 µs, `to_roman` ~200–250 µs, `to_urdu` ~30–40 µs, and `stem_tokens` ~350 µs. That is roughly 4,000 sentences a second through `to_roman` on one core, with no warm-up and no model to load.
 
 UD Urdu-UDTB is by Bhat et al. (2017), *The Hindi/Urdu Treebank Project*; cite it if you publish these numbers.
 
@@ -224,6 +251,7 @@ pytest
 Stated up front rather than discovered later:
 
 - **Transliteration of unknown words is 16.0%/34.8% accurate** (most-attested / any-attested, Dakshina test split). See above.
+- **`to_urdu` is weaker still**: 46.1% of tokens in real romanized sentences come out exactly right, and 9.5% of rare words. Roman `s`/`k`/`z` map to several Urdu letters each, and only words in the lookup tables are resolved reliably.
 - **The tokenizer does not recover omitted spaces by default.** `کتابہے` stays one token instead of becoming `کتاب` + `ہے`. `word_tokenize(..., recover_spaces=True)` opts in to lexicon-bounded recovery — it only splits where a vocabulary you supply resolves the split unambiguously — and `to_roman(..., recover_spaces=True)` does the same against its own tables. It is off by default in both because it is wrong often enough to matter: measured on 24,922 real single words from Dakshina, it split 1.2% of them (`کاجو`, cashew, became `کا` + `جو`). General word segmentation is still unsolved; see [issue #3](https://github.com/syahra712/urdukit/issues/3).
 - **Stemming is not lemmatization.** `گیا` will not become `جانا`, and Arabic broken plurals (`کتاب` → `کتب`) need a dictionary. Words whose last letters look like an ending get over-stemmed (`ہفتے`, week, → `ہف`); a short hand-written `PROTECTED` list covers the commonest (`پانی`, `دنیا`, `کراچی`). Measured against the lemmas of the Urdu UD treebank the stemmer reaches 73.7% F1 on the test split — see [Benchmarks](#benchmarks).
 - **No POS tagging or NER.** Use [stanza](https://stanfordnlp.github.io/stanza/) for those.
