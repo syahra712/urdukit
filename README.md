@@ -185,7 +185,7 @@ UD Urdu-UDTB, test split (535 sentences, 1,944 distinct content-word forms for s
 |---|---:|---:|---:|
 | Word tokenization | 99.9% | 100.0% | 99.9% |
 | Sentence splitting | 99.8% | 98.7% | 99.2% |
-| Stemming (conflation) | 73.8% | 73.6% | **73.7%** |
+| Stemming (conflation) | 76.3% | 87.4% | **81.4%** |
 | &nbsp;&nbsp;stemmer in 0.1.0, for comparison | 73.5% | 58.8% | 65.3% |
 | &nbsp;&nbsp;no stemming, for scale | – | 0.0% | 0.0% |
 | Stopwords vs. closed-class POS | 85.8% | 91.3% | 88.5% |
@@ -194,7 +194,21 @@ UD Urdu-UDTB, test split (535 sentences, 1,944 distinct content-word forms for s
 
 UD Urdu-UDTB is by Bhat et al. (2017), *The Hindi/Urdu Treebank Project*; cite it if you publish these numbers.
 
-Stemming is scored as conflation: two forms should share a stem exactly when the treebank's annotators gave them the same lemma. Some of the "errors" are the treebank being stricter than a search index needs (it keeps the noun `کھیل` apart from the verb `کھیلنا`), so read precision as a lower bound. Recall can't reach 100% either: irregular forms (`کیا` → `کرنا`) and Arabic broken plurals (`افراد` → `فرد`) are out of reach for any suffix rule.
+Stemming is scored as conflation: two forms should share a stem exactly when the treebank's annotators gave them the same lemma. Some of the "errors" are the treebank being stricter than a search index needs (it keeps the noun `کھیل` apart from the verb `کھیلنا`), so read precision as a lower bound. Recall can't reach 100% either: Arabic broken plurals (`افراد` → `فرد`) are out of reach for any suffix rule, and irregular verbs are covered only for the five commonest (`کیا`, `گیا`, `دیا`, `لیا`, `آیا`; see `IRREGULAR`).
+
+### Against other toolkits
+
+`scripts/compare_ud.py` runs other Urdu toolkits through the same scoring code, on the same test split:
+
+| Toolkit | Tokens F1 | Sentences F1 | Lemma groups F1 | Stopwords F1 | Tokenize time | Install size |
+|---|---:|---:|---:|---:|---:|---:|
+| urdukit 0.2.0 | 99.9% | 99.2% | 81.4% | 88.5% | 0.8 s | 0.2 MB, no dependencies |
+| Stanza 1.9.2 | 100.0% | 99.6% | **88.9%** | – | 9.4 s | about 0.9 GB with PyTorch and the Urdu models |
+| urduhack 1.0.3 | 86.7% | 95.7% | – | 86.3% | 1,367 s | about 1.5 GB with TensorFlow |
+
+– means the toolkit does not offer that task.
+
+Stanza is a neural pipeline **trained on this treebank's train split**, so it is scored in-domain here. Its lemmatizer also reads context and returns dictionary forms, which a stemmer cannot do; it was given gold tokens, so its lemma score leaves out its own tokenization errors. The gap is the price of having no dependencies and no model. Tokenize time is wall-clock time for the whole split on one Intel Mac CPU, with model loading excluded and each tool called once per sentence, the way its API is used. Install size is the packages plus downloaded models.
 
 ## Migrating from urduhack
 
@@ -262,7 +276,7 @@ Stated up front rather than discovered later:
 - **Transliteration of unknown words is 15.2%/34.1% accurate** (most-attested / any-attested, rules alone, on the Dakshina test words in neither lookup table). With the tables, the headline is 16.0%/34.8%. See above.
 - **`to_urdu` is weaker still**: 46.1% of tokens in real romanized sentences come out exactly right, and 9.5% of rare words. Roman `s`/`k`/`z` map to several Urdu letters each, and only words in the lookup tables are resolved reliably.
 - **The tokenizer does not recover omitted spaces by default.** `کتابہے` stays one token instead of becoming `کتاب` + `ہے`. `word_tokenize(..., recover_spaces=True)` opts in to lexicon-bounded recovery — it only splits where a vocabulary you supply resolves the split unambiguously — and `to_roman(..., recover_spaces=True)` does the same against its own tables. It is off by default in both because it is wrong often enough to matter: measured on 24,922 real single words from Dakshina, it split 1.2% of them (`کاجو`, cashew, became `کا` + `جو`). General word segmentation is still unsolved; see [issue #3](https://github.com/syahra712/urdukit/issues/3).
-- **Stemming is not lemmatization.** `گیا` will not become `جانا`, and Arabic broken plurals (`کتاب` → `کتب`) need a dictionary. Words whose last letters look like an ending get over-stemmed (`ہفتے`, week, → `ہف`); a short hand-written `PROTECTED` list covers the commonest (`پانی`, `دنیا`, `کراچی`). Measured against the lemmas of the Urdu UD treebank the stemmer reaches 73.7% F1 on the test split — see [Benchmarks](#benchmarks).
+- **Stemming is not lemmatization.** `گیا` shares a stem with `جانا` but does not become it, only five common verbs have their irregular forms listed, and Arabic broken plurals (`کتاب` → `کتب`) need a dictionary. Words whose last letters look like an ending get over-stemmed (`ہفتے`, week, → `ہف`); a short hand-written `PROTECTED` list covers the commonest (`پانی`, `دنیا`, `کراچی`). Measured against the lemmas of the Urdu UD treebank the stemmer reaches 81.4% F1 on the test split — see [Benchmarks](#benchmarks).
 - **No POS tagging or NER.** Use [stanza](https://stanfordnlp.github.io/stanza/) for those.
 
 ## License

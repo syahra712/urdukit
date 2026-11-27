@@ -17,7 +17,7 @@ How well it works
 -----------------
 Scored with ``scripts/benchmark_ud.py`` against the lemmas of the Urdu UD
 treebank -- do two forms share a stem exactly when annotators gave them the
-same lemma -- this design reaches 73.7% F1 on the held-out test split,
+same lemma -- this design reaches 81.4% F1 on the held-out test split,
 against 65.3% for the previous single-strip stemmer. Rules were chosen on
 the train and dev splits only. Most remaining "errors" are of two kinds:
 verbs and the nouns derived from them (``کھیل`` / ``کھیلنا``), which UD
@@ -28,8 +28,9 @@ without a dictionary can separate.
 What this is not
 ----------------
 A lemmatizer. It does not consult a dictionary, does not know parts of
-speech, and will not recover irregular forms: ``گیا`` (went) will not become
-``جانا`` (to go). Urdu also inherits Persian and Arabic broken plurals
+speech, and recovers irregular forms only for the handful of verbs in
+:data:`IRREGULAR` (``گیا`` and ``جاتا`` share the stem ``جا``; ``گیا`` does
+not *become* ``جانا``). Urdu also inherits Persian and Arabic broken plurals
 (``کتاب`` → ``کتب``) which no suffix rule can undo.
 
 Stemming is a precision-for-recall trade. Use it for search indexing; do not
@@ -40,7 +41,7 @@ from __future__ import annotations
 
 from .normalization import normalize
 
-__all__ = ["stem", "stem_tokens", "SUFFIXES", "PROTECTED"]
+__all__ = ["stem", "stem_tokens", "SUFFIXES", "PROTECTED", "IRREGULAR"]
 
 #: Step 1: the future auxiliary, when written fused to the verb.
 _FUTURE: tuple[str, ...] = ("گا", "گی", "گے")
@@ -92,6 +93,29 @@ PROTECTED: frozenset[str] = frozenset(
     """.split()
 )
 
+#: Irregular forms of the commonest verbs, mapped to the stem their regular
+#: forms get (so گیا meets جانا, جاتا at جا). No suffix rule reaches these:
+#: کیا shares no ending with کرنا. Hand-written from Urdu grammar, with the
+#: usual spelling variants.
+#:
+#: Left out on purpose: کی, دی and لی. They are perfective forms too, but in
+#: running text they are overwhelmingly the possessive کی and the feminine
+#: endings, and mapping them would merge "of" with "do". کیا is included
+#: although it also means "what": as a verb it is among the commonest words
+#: in the language, and "what" is a stopword in most pipelines anyway.
+_IRREGULAR_RAW = {
+    "کر": "کیا کیے کئے کیئے کیں",
+    "جا": "گیا گئی گئے گیے گئیں",
+    "دی": "دیا دیے دئے دئیے دیئے دے",
+    "لی": "لیا لیے لئے لیئے لے",
+    "آ": "آنا آنے آنی آتا آتی آتے آیا آئی آئے آئیں آؤ",
+}
+IRREGULAR: dict[str, str] = {
+    normalize(form): normalize(root)
+    for root, forms in _IRREGULAR_RAW.items()
+    for form in forms.split()
+}
+
 #: Below this length a stem is more likely noise than signal.
 MIN_STEM_LENGTH = 2
 
@@ -125,8 +149,12 @@ def stem(word: str, *, min_length: int = MIN_STEM_LENGTH) -> str:
         'کر'
         >>> stem("کہانیوں")
         'کہانی'
+        >>> stem("گیا") == stem("جاتا")
+        True
     """
     word = normalize(word)
+    if word in IRREGULAR:
+        return IRREGULAR[word]
     if len(word) <= min_length or word in PROTECTED:
         return word
 
@@ -134,6 +162,8 @@ def stem(word: str, *, min_length: int = MIN_STEM_LENGTH) -> str:
         if word.endswith(suffix) and len(word) - len(suffix) >= min_length:
             word = word[: -len(suffix)]
             break
+    if word in IRREGULAR:  # گیاگا is not a word, but آئےگا is
+        return IRREGULAR[word]
 
     for suffix in SUFFIXES:
         floor = max(min_length, _MIN_STEM_FOR.get(suffix, 0))
